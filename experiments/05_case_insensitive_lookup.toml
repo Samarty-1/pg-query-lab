@@ -1,0 +1,37 @@
+title = "Find a user by name, ignoring case"
+question = """
+Wrapping a column in a function hides it from an ordinary index. Looking up a display
+name with lower() across 1.48M users: no index, an index on the column, and an index on
+the expression.
+"""
+ordered = false
+query = """
+SELECT id, display_name, reputation
+FROM users
+WHERE lower(display_name) = {{name}}
+"""
+
+[params.full]
+name = "oli"
+[params.fixture]
+name = "user42"
+
+[[variant]]
+name = "no index"
+plan_has = ["Seq Scan on users"]
+
+[[variant]]
+name = "index on (display_name)"
+note = "Built, paid for, and not used: the index is on display_name, the query filters on lower(display_name)."
+setup = "CREATE INDEX exp_users_name ON users (display_name)"
+teardown = "DROP INDEX exp_users_name"
+measure_size = ["exp_users_name"]
+plan_has = ["Seq Scan on users"]
+plan_lacks = ["exp_users_name"]
+
+[[variant]]
+name = "index on (lower(display_name))"
+setup = "CREATE INDEX exp_users_name_lower ON users (lower(display_name)); ANALYZE users"
+teardown = "DROP INDEX exp_users_name_lower; ANALYZE users"
+measure_size = ["exp_users_name_lower"]
+plan_has = ["exp_users_name_lower"]

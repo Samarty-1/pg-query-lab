@@ -1,0 +1,10 @@
+-- cancelled after 20 s; this is the plan without ANALYZE
+Finalize Aggregate  (cost=36021825401.18..36021825401.19 rows=1 width=8)
+  ->  Gather  (cost=36021825400.97..36021825401.18 rows=2 width=8)
+        Workers Planned: 2
+        ->  Partial Aggregate  (cost=36021824400.97..36021824400.98 rows=1 width=8)
+              ->  Parallel Seq Scan on users  (cost=0.00..36021823631.74 rows=307691 width=0)
+                    Filter: (NOT (ANY (id = (SubPlan 1).col1)))
+                    SubPlan 1
+                      ->  Materialize  (cost=0.00..114708.67 rows=945111 width=4)
+                            ->  Seq Scan on posts  (cost=0.00..106291.11 rows=945111 width=4)

@@ -1,0 +1,51 @@
+title = "The date of the latest vote of one type"
+question = """
+An index is not always the faster path. Vote type 2 (up-vote) is 73% of the table;
+type 7 (reopen) is 198 rows. The same index on (vote_type_id) is offered for both.
+For the common value the planner ignores it; forcing it shows the planner was right.
+The last two variants ask about the rare value, so they return a different row and
+their times should be compared with each other, not with the first variant.
+"""
+ordered = true
+query = "SELECT max(creation_date) FROM votes WHERE vote_type_id = {{common}}"
+
+[params.full]
+common = 2
+rare = 7
+[params.fixture]
+common = 2
+rare = 8
+
+[[variant]]
+name = "common value, no index"
+plan_has = ["Seq Scan on votes"]
+
+[[variant]]
+name = "common value, index on (vote_type_id) available"
+note = "The index exists and the planner still reads the whole table."
+setup = "CREATE INDEX exp_votes_type ON votes (vote_type_id)"
+teardown = "DROP INDEX exp_votes_type"
+measure_size = ["exp_votes_type"]
+plan_has = ["Seq Scan on votes"]
+plan_lacks = ["exp_votes_type"]
+
+[[variant]]
+name = "common value, index forced (enable_seqscan = off)"
+setup = "CREATE INDEX exp_votes_type ON votes (vote_type_id)"
+teardown = "DROP INDEX exp_votes_type"
+settings = { enable_seqscan = "off" }
+plan_has = ["exp_votes_type"]
+
+[[variant]]
+name = "rare value, no index"
+query = "SELECT max(creation_date) FROM votes WHERE vote_type_id = {{rare}}"
+expect = "any"
+plan_has = ["Seq Scan on votes"]
+
+[[variant]]
+name = "rare value, same index"
+setup = "CREATE INDEX exp_votes_type ON votes (vote_type_id)"
+teardown = "DROP INDEX exp_votes_type"
+query = "SELECT max(creation_date) FROM votes WHERE vote_type_id = {{rare}}"
+expect = "any"
+plan_has = ["exp_votes_type"]

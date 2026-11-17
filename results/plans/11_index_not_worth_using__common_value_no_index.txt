@@ -1,0 +1,14 @@
+Finalize Aggregate  (cost=61965.51..61965.52 rows=1 width=8) (actual time=231.368..241.124 rows=1 loops=1)
+  Buffers: shared hit=31536
+  ->  Gather  (cost=61965.30..61965.51 rows=2 width=8) (actual time=231.271..241.119 rows=3 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=31536
+        ->  Partial Aggregate  (cost=60965.30..60965.31 rows=1 width=8) (actual time=215.565..215.565 rows=1 loops=3)
+              Buffers: shared hit=31536
+              ->  Parallel Seq Scan on votes  (cost=0.00..57240.09 rows=1490083 width=8) (actual time=0.011..142.383 rows=1195973 loops=3)
+                    Filter: (vote_type_id = 2)
+                    Rows Removed by Filter: 449089
+                    Buffers: shared hit=31536
+Planning Time: 0.083 ms
+Execution Time: 241.146 ms

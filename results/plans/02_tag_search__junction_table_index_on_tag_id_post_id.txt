@@ -1,0 +1,24 @@
+Limit  (cost=333.38..333.51 rows=50 width=65) (actual time=23.917..23.922 rows=50 loops=1)
+  Buffers: shared hit=44882
+  ->  Sort  (cost=333.38..334.30 rows=368 width=65) (actual time=23.917..23.919 rows=50 loops=1)
+        Sort Key: p.creation_date DESC, p.id DESC
+        Sort Method: top-N heapsort  Memory: 37kB
+        Buffers: shared hit=44882
+        ->  Nested Loop  (cost=1.13..321.16 rows=368 width=65) (actual time=0.018..21.667 rows=11211 loops=1)
+              Buffers: shared hit=44882
+              ->  Nested Loop  (cost=0.71..32.43 rows=368 width=4) (actual time=0.015..1.541 rows=11211 loops=1)
+                    Buffers: shared hit=38
+                    ->  Index Scan using tags_name_unique on tags t  (cost=0.28..8.30 rows=1 width=4) (actual time=0.006..0.006 rows=1 loops=1)
+                          Index Cond: (tag_name = 'bash'::text)
+                          Buffers: shared hit=3
+                    ->  Index Only Scan using exp_post_tags_tag on post_tags pt  (cost=0.43..18.42 rows=571 width=8) (actual time=0.008..0.928 rows=11211 loops=1)
+                          Index Cond: (tag_id = t.id)
+                          Heap Fetches: 0
+                          Buffers: shared hit=35
+              ->  Index Scan using posts_pkey on posts p  (cost=0.42..0.78 rows=1 width=65) (actual time=0.001..0.001 rows=1 loops=11211)
+                    Index Cond: (id = pt.post_id)
+                    Buffers: shared hit=44844
+Planning:
+  Buffers: shared hit=48
+Planning Time: 0.343 ms
+Execution Time: 23.941 ms

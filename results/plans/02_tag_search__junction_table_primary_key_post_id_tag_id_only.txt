@@ -1,0 +1,32 @@
+Limit  (cost=12396.14..12401.98 rows=50 width=65) (actual time=69.358..76.526 rows=50 loops=1)
+  Buffers: shared hit=50126
+  ->  Gather Merge  (cost=12396.14..12431.85 rows=306 width=65) (actual time=69.358..76.521 rows=50 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=50126
+        ->  Sort  (cost=11396.12..11396.50 rows=153 width=65) (actual time=54.441..54.445 rows=41 loops=3)
+              Sort Key: p.creation_date DESC, p.id DESC
+              Sort Method: top-N heapsort  Memory: 35kB
+              Buffers: shared hit=50126
+              Worker 0:  Sort Method: top-N heapsort  Memory: 35kB
+              Worker 1:  Sort Method: top-N heapsort  Memory: 35kB
+              ->  Nested Loop  (cost=8.73..11391.04 rows=153 width=65) (actual time=2.723..53.758 rows=3737 loops=3)
+                    Buffers: shared hit=50098
+                    ->  Hash Join  (cost=8.31..11270.99 rows=153 width=4) (actual time=2.686..37.434 rows=3737 loops=3)
+                          Hash Cond: (pt.tag_id = t.id)
+                          Buffers: shared hit=5252
+                          ->  Parallel Seq Scan on post_tags pt  (cost=0.00..9989.34 rows=484434 width=8) (actual time=0.011..16.011 rows=387547 loops=3)
+                                Buffers: shared hit=5145
+                          ->  Hash  (cost=8.30..8.30 rows=1 width=4) (actual time=0.037..0.037 rows=1 loops=3)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=11
+                                ->  Index Scan using tags_name_unique on tags t  (cost=0.28..8.30 rows=1 width=4) (actual time=0.032..0.032 rows=1 loops=3)
+                                      Index Cond: (tag_name = 'bash'::text)
+                                      Buffers: shared hit=11
+                    ->  Index Scan using posts_pkey on posts p  (cost=0.42..0.78 rows=1 width=65) (actual time=0.004..0.004 rows=1 loops=11211)
+                          Index Cond: (id = pt.post_id)
+                          Buffers: shared hit=44846
+Planning:
+  Buffers: shared hit=40
+Planning Time: 0.332 ms
+Execution Time: 76.581 ms

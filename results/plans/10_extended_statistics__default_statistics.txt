@@ -1,0 +1,33 @@
+Finalize GroupAggregate  (cost=31751.42..31993.37 rows=955 width=12) (actual time=326.886..344.893 rows=28053 loops=1)
+  Group Key: b.user_id
+  Buffers: shared hit=184004
+  ->  Gather Merge  (cost=31751.42..31974.27 rows=1910 width=12) (actual time=326.880..338.244 rows=32823 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=184004
+        ->  Sort  (cost=30751.40..30753.78 rows=955 width=12) (actual time=308.644..309.409 rows=10941 loops=3)
+              Sort Key: b.user_id
+              Sort Method: quicksort  Memory: 708kB
+              Buffers: shared hit=184004
+              Worker 0:  Sort Method: quicksort  Memory: 727kB
+              Worker 1:  Sort Method: quicksort  Memory: 745kB
+              ->  Partial HashAggregate  (cost=30694.58..30704.13 rows=955 width=12) (actual time=304.657..306.424 rows=10941 loops=3)
+                    Group Key: b.user_id
+                    Batches: 1  Memory Usage: 1169kB
+                    Buffers: shared hit=183990
+                    Worker 0:  Batches: 1  Memory Usage: 1169kB
+                    Worker 1:  Batches: 1  Memory Usage: 1169kB
+                    ->  Nested Loop  (cost=0.42..30638.56 rows=11203 width=4) (actual time=63.181..210.181 rows=733291 loops=3)
+                          Buffers: shared hit=183990
+                          ->  Parallel Seq Scan on badges b  (cost=0.00..29039.77 rows=399 width=4) (actual time=63.052..77.004 rows=13470 loops=3)
+                                Filter: ((name = 'Famous Question'::text) AND (class = 1))
+                                Rows Removed by Filter: 654678
+                                Buffers: shared hit=16512
+                          ->  Index Only Scan using exp_posts_owner on posts p  (cost=0.42..3.82 rows=19 width=4) (actual time=0.002..0.006 rows=54 loops=40409)
+                                Index Cond: (owner_user_id = b.user_id)
+                                Heap Fetches: 15
+                                Buffers: shared hit=167478
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.207 ms
+Execution Time: 345.841 ms

@@ -1,0 +1,10 @@
+Gather  (cost=1000.00..41598.07 rows=7386 width=20) (actual time=1.439..154.535 rows=42 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  Buffers: shared hit=30627
+  ->  Parallel Seq Scan on users  (cost=0.00..39859.47 rows=3078 width=20) (actual time=1.087..126.830 rows=14 loops=3)
+        Filter: (lower(display_name) = 'oli'::text)
+        Rows Removed by Filter: 492327
+        Buffers: shared hit=30627
+Planning Time: 0.060 ms
+Execution Time: 154.556 ms

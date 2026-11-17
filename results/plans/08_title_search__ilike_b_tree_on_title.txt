@@ -1,0 +1,16 @@
+Gather Merge  (cost=102762.85..102767.05 rows=36 width=57) (actual time=176.216..195.210 rows=2678 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  Buffers: shared hit=96912
+  ->  Sort  (cost=101762.83..101762.87 rows=18 width=57) (actual time=161.542..161.577 rows=893 loops=3)
+        Sort Key: id
+        Sort Method: quicksort  Memory: 146kB
+        Buffers: shared hit=96912
+        Worker 0:  Sort Method: quicksort  Memory: 84kB
+        Worker 1:  Sort Method: quicksort  Memory: 91kB
+        ->  Parallel Seq Scan on posts  (cost=0.00..101762.45 rows=18 width=57) (actual time=0.185..161.250 rows=893 loops=3)
+              Filter: (title ~~* '%nvidia%driver%'::text)
+              Rows Removed by Filter: 314144
+              Buffers: shared hit=96840
+Planning Time: 0.110 ms
+Execution Time: 195.322 ms

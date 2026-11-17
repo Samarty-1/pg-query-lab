@@ -1,0 +1,1872 @@
+{
+  "environment": {
+    "server_version": "17.6",
+    "shared_buffers": "2GB",
+    "work_mem": "4MB",
+    "maintenance_work_mem": "1GB",
+    "effective_cache_size": "4GB",
+    "random_page_cost": "4",
+    "max_parallel_workers_per_gather": "2",
+    "jit": "on",
+    "database_size": "2234 MB",
+    "rows": {
+      "users": 1477024,
+      "posts": 945111,
+      "comments": 1532817,
+      "votes": 4935185,
+      "badges": 2004443,
+      "tags": 3162,
+      "post_links": 221126,
+      "post_tags": 1162642
+    }
+  },
+  "runs": 7,
+  "experiments": [
+    {
+      "id": "01_user_timeline",
+      "title": "The 20 most recent posts by one user",
+      "question": "The profile page: the latest 20 posts by one user, newest first. The user picked is the\nmost prolific author on the site (4,428 posts), which is the worst case for this page.\n",
+      "params": {
+        "user_id": 15811
+      },
+      "variants": [
+        {
+          "name": "no index",
+          "note": "",
+          "median_ms": 155.019099999663,
+          "min_ms": 147.35649999965972,
+          "max_ms": 176.05490000005375,
+          "timed_out": false,
+          "rows": 20,
+          "hash": "b4d393a9943c8e3b",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Gather Merge",
+              "Sort",
+              "Seq Scan on posts"
+            ],
+            "buffers_hit": 83974,
+            "buffers_read": 12952,
+            "planning_ms": 0.082,
+            "execution_ms": 171.48,
+            "worst_estimate": {
+              "node": "Gather Merge",
+              "estimated": 3282,
+              "actual": 20
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 940683,
+            "sort": [
+              "top-N heapsort (Memory 27 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "index on (owner_user_id)",
+          "note": "Finds the rows for the user through the index, but still fetches and sorts all of them to keep 20.",
+          "median_ms": 1.9656000004033558,
+          "min_ms": 1.9344000002092798,
+          "max_ms": 2.3913000004540663,
+          "timed_out": false,
+          "rows": 20,
+          "hash": "b4d393a9943c8e3b",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Sort",
+              "Index Scan using exp_posts_owner"
+            ],
+            "buffers_hit": 4016,
+            "buffers_read": 0,
+            "planning_ms": 0.064,
+            "execution_ms": 1.973,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 3938,
+              "actual": 20
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "top-N heapsort (Memory 27 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_posts_owner": 12443648
+          },
+          "problems": []
+        },
+        {
+          "name": "index on (owner_user_id, creation_date DESC, id DESC)",
+          "note": "The index is already in the order the page wants, so the scan stops after 20 entries and nothing is sorted.",
+          "median_ms": 0.16070000037871068,
+          "min_ms": 0.1509000003352412,
+          "max_ms": 0.3348000000187312,
+          "timed_out": false,
+          "rows": 20,
+          "hash": "b4d393a9943c8e3b",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Index Scan using exp_posts_owner_recent"
+            ],
+            "buffers_hit": 22,
+            "buffers_read": 0,
+            "planning_ms": 0.057,
+            "execution_ms": 0.029,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 3938,
+              "actual": 20
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_posts_owner_recent": 38330368
+          },
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "02_tag_search",
+      "title": "The 50 newest questions with a given tag",
+      "question": "Tags arrive in the dump as one string per question, `|bash|scripts|`. The loader also\nsplits them into a `post_tags (post_id, tag_id)` table. Which shape answers \"newest 50\nquestions tagged bash\" fastest, and does the junction table's primary key help?\n",
+      "params": {
+        "tag": "bash",
+        "pattern": "%|bash|%"
+      },
+      "variants": [
+        {
+          "name": "LIKE on the tag string",
+          "note": "",
+          "median_ms": 173.78160000043863,
+          "min_ms": 169.06740000013087,
+          "max_ms": 199.91790000040055,
+          "timed_out": false,
+          "rows": 50,
+          "hash": "74bb282417e5d828",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Gather Merge",
+              "Sort",
+              "Seq Scan on posts"
+            ],
+            "buffers_hit": 73704,
+            "buffers_read": 23222,
+            "planning_ms": 0.089,
+            "execution_ms": 188.182,
+            "worst_estimate": {
+              "node": "Gather Merge",
+              "estimated": 11410,
+              "actual": 50
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 933900,
+            "sort": [
+              "top-N heapsort (Memory 37 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "junction table, primary key (post_id, tag_id) only",
+          "note": "The key starts with post_id, so it cannot be used to look up a tag: the whole junction table is read.",
+          "median_ms": 127.32899999991787,
+          "min_ms": 66.12219999988156,
+          "max_ms": 135.26459999957297,
+          "timed_out": false,
+          "rows": 50,
+          "hash": "74bb282417e5d828",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Gather Merge",
+              "Sort",
+              "Nested Loop",
+              "Hash Join",
+              "Seq Scan on post_tags",
+              "Hash",
+              "Index Scan using tags_name_unique",
+              "Index Scan using posts_pkey"
+            ],
+            "buffers_hit": 50126,
+            "buffers_read": 0,
+            "planning_ms": 0.339,
+            "execution_ms": 88.936,
+            "worst_estimate": {
+              "node": "Nested Loop",
+              "estimated": 153,
+              "actual": 3737
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "top-N heapsort (Memory 35 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "junction table + index on (tag_id, post_id)",
+          "note": "",
+          "median_ms": 22.34150000003865,
+          "min_ms": 22.265999999945052,
+          "max_ms": 24.625600000035774,
+          "timed_out": false,
+          "rows": 50,
+          "hash": "74bb282417e5d828",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Sort",
+              "Nested Loop",
+              "Nested Loop",
+              "Index Scan using tags_name_unique",
+              "Index Only Scan using exp_post_tags_tag",
+              "Index Scan using posts_pkey"
+            ],
+            "buffers_hit": 44882,
+            "buffers_read": 0,
+            "planning_ms": 0.31,
+            "execution_ms": 23.54,
+            "worst_estimate": {
+              "node": "Nested Loop",
+              "estimated": 368,
+              "actual": 11211
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "top-N heapsort (Memory 37 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_post_tags_tag": 26140672
+          },
+          "problems": []
+        },
+        {
+          "name": "trigram index on the tag string",
+          "note": "Keeps the original LIKE query unchanged; costs a much larger index.",
+          "median_ms": 12.219399999594316,
+          "min_ms": 11.478399999759858,
+          "max_ms": 13.026699999500124,
+          "timed_out": false,
+          "rows": 50,
+          "hash": "74bb282417e5d828",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Sort",
+              "Bitmap Heap Scan on posts",
+              "Bitmap Index Scan using exp_posts_tags_trgm"
+            ],
+            "buffers_hit": 10663,
+            "buffers_read": 0,
+            "planning_ms": 0.116,
+            "execution_ms": 13.511,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 13691,
+              "actual": 50
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "top-N heapsort (Memory 37 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_posts_tags_trgm": 33824768
+          },
+          "problems": []
+        },
+        {
+          "name": "junction table carrying creation_date, index on (tag_id, creation_date DESC, post_id DESC)",
+          "note": "Every earlier variant must fetch all 11,211 bash questions to find the newest 50. Copying the (immutable) creation date into the junction row lets the index hand back the newest 50 directly.",
+          "median_ms": 0.4107000004296424,
+          "min_ms": 0.250199999754841,
+          "max_ms": 0.5160000000614673,
+          "timed_out": false,
+          "rows": 50,
+          "hash": "74bb282417e5d828",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Nested Loop",
+              "Nested Loop",
+              "Index Scan using tags_name_unique",
+              "Limit",
+              "Index Only Scan using exp_post_tags_recent",
+              "Memoize",
+              "Index Scan using posts_pkey"
+            ],
+            "buffers_hit": 256,
+            "buffers_read": 0,
+            "planning_ms": 0.192,
+            "execution_ms": 0.246,
+            "worst_estimate": {
+              "node": "Index Only Scan",
+              "estimated": 569,
+              "actual": 50
+            },
+            "heap_fetches": 50,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 29 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_post_tags": 107995136
+          },
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "03_deep_pagination",
+      "title": "Page 4,001 of the question list",
+      "question": "Questions newest first, 50 per page. Both variants have the same index on\n(creation_date, id); the only difference is how the page is addressed. OFFSET has to\nwalk past every earlier row; keyset pagination starts from the last row of the\nprevious page.\n",
+      "params": {
+        "offset": 200000,
+        "after_date": "2016-09-30 18:39:00.940000",
+        "after_id": 831682
+      },
+      "variants": [
+        {
+          "name": "OFFSET",
+          "note": "",
+          "median_ms": 65.29219999993074,
+          "min_ms": 63.79370000013296,
+          "max_ms": 82.67960000011954,
+          "timed_out": false,
+          "rows": 50,
+          "hash": "c48dc055a57adc87",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Index Scan using exp_questions_recent"
+            ],
+            "buffers_hit": 50681,
+            "buffers_read": 0,
+            "planning_ms": 0.072,
+            "execution_ms": 72.83,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 415597,
+              "actual": 200050
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "keyset (row comparison)",
+          "note": "",
+          "median_ms": 0.21579999975074315,
+          "min_ms": 0.14240000018617138,
+          "max_ms": 0.30329999935929663,
+          "timed_out": false,
+          "rows": 50,
+          "hash": "c48dc055a57adc87",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Limit",
+              "Index Scan using exp_questions_recent"
+            ],
+            "buffers_hit": 18,
+            "buffers_read": 0,
+            "planning_ms": 0.042,
+            "execution_ms": 0.028,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 234495,
+              "actual": 50
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "04_date_range",
+      "title": "Up-votes per day over the last month",
+      "question": "A dashboard query over the biggest table (4.9M votes): up-votes per day since\n1 March 2024. Five ways to index a date range, with what each index costs on disk.\n",
+      "params": {
+        "since": "2024-03-01"
+      },
+      "variants": [
+        {
+          "name": "no index",
+          "note": "",
+          "median_ms": 150.691600000755,
+          "min_ms": 141.34000000012747,
+          "max_ms": 170.99559999951452,
+          "timed_out": false,
+          "rows": 31,
+          "hash": "3e97464c7979bfc4",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather Merge",
+              "Aggregate",
+              "Sort",
+              "Seq Scan on votes"
+            ],
+            "buffers_hit": 31650,
+            "buffers_read": 0,
+            "planning_ms": 0.074,
+            "execution_ms": 137.431,
+            "worst_estimate": {
+              "node": "Aggregate",
+              "estimated": 4632,
+              "actual": 31
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 4922712,
+            "sort": [
+              "quicksort (Memory 193 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "BRIN on (creation_date)",
+          "note": "A BRIN index stores one min/max per range of pages. Votes.xml is not in id or date order (physical correlation 0.61), so recent votes sit in 24% of the pages, spread across every range: the index rules nothing out, and the scan it produces is not parallel.",
+          "median_ms": 512.5905999993847,
+          "min_ms": 476.47849999975733,
+          "max_ms": 581.6162999999506,
+          "timed_out": false,
+          "rows": 31,
+          "hash": "3e97464c7979bfc4",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Aggregate",
+              "Bitmap Heap Scan on votes",
+              "Bitmap Index Scan using exp_votes_date_brin"
+            ],
+            "buffers_hit": 31538,
+            "buffers_read": 0,
+            "planning_ms": 0.081,
+            "execution_ms": 539.47,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 4632,
+              "actual": 31
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 3483,
+            "sort": [
+              "quicksort (Memory 25 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_votes_date_brin": 49152
+          },
+          "problems": []
+        },
+        {
+          "name": "BRIN on (creation_date), on a copy of the table stored in date order",
+          "note": "Same rows, same kind of index, 48 kB. The only change is the physical order of the rows.",
+          "median_ms": 3.577499999664724,
+          "min_ms": 3.269400000135647,
+          "max_ms": 4.768100000546838,
+          "timed_out": false,
+          "rows": 31,
+          "hash": "3e97464c7979bfc4",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Aggregate",
+              "Bitmap Heap Scan on exp_votes_sorted",
+              "Bitmap Index Scan using exp_votes_sorted_brin"
+            ],
+            "buffers_hit": 194,
+            "buffers_read": 0,
+            "planning_ms": 0.064,
+            "execution_ms": 3.653,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 4416,
+              "actual": 31
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 3483,
+            "sort": [
+              "quicksort (Memory 25 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_votes_sorted_brin": 49152
+          },
+          "problems": []
+        },
+        {
+          "name": "B-tree on (creation_date)",
+          "note": "",
+          "median_ms": 12.634899999284244,
+          "min_ms": 10.838899999725982,
+          "max_ms": 14.2095999999583,
+          "timed_out": false,
+          "rows": 31,
+          "hash": "3e97464c7979bfc4",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Aggregate",
+              "Bitmap Heap Scan on votes",
+              "Bitmap Index Scan using exp_votes_date"
+            ],
+            "buffers_hit": 7559,
+            "buffers_read": 0,
+            "planning_ms": 0.119,
+            "execution_ms": 12.136,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 4632,
+              "actual": 31
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 3483,
+            "sort": [
+              "quicksort (Memory 25 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_votes_date": 35774464
+          },
+          "problems": []
+        },
+        {
+          "name": "B-tree on (creation_date, vote_type_id)",
+          "note": "Both columns the query needs are in the index, so the table itself is never read (index-only scan).",
+          "median_ms": 1.989299999877403,
+          "min_ms": 1.8224999994345126,
+          "max_ms": 2.1542000004046713,
+          "timed_out": false,
+          "rows": 31,
+          "hash": "3e97464c7979bfc4",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Aggregate",
+              "Index Only Scan using exp_votes_date_type"
+            ],
+            "buffers_hit": 18,
+            "buffers_read": 0,
+            "planning_ms": 0.07,
+            "execution_ms": 2.429,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 4632,
+              "actual": 31
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 25 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_votes_date_type": 36757504
+          },
+          "problems": []
+        },
+        {
+          "name": "partial B-tree on (creation_date) WHERE vote_type_id = 2",
+          "note": "",
+          "median_ms": 3.2511999997950625,
+          "min_ms": 1.9085000003542518,
+          "max_ms": 3.4051000002364162,
+          "timed_out": false,
+          "rows": 31,
+          "hash": "3e97464c7979bfc4",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Aggregate",
+              "Index Only Scan using exp_votes_up_date"
+            ],
+            "buffers_hit": 14,
+            "buffers_read": 0,
+            "planning_ms": 0.082,
+            "execution_ms": 3.342,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 4632,
+              "actual": 31
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 25 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_votes_up_date": 26066944
+          },
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "05_case_insensitive_lookup",
+      "title": "Find a user by name, ignoring case",
+      "question": "Wrapping a column in a function hides it from an ordinary index. Looking up a display\nname with lower() across 1.48M users: no index, an index on the column, and an index on\nthe expression.\n",
+      "params": {
+        "name": "oli"
+      },
+      "variants": [
+        {
+          "name": "no index",
+          "note": "",
+          "median_ms": 124.89819999973406,
+          "min_ms": 113.51070000000618,
+          "max_ms": 194.29589999981545,
+          "timed_out": false,
+          "rows": 42,
+          "hash": "cf72c82e85473c59",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Gather",
+              "Seq Scan on users"
+            ],
+            "buffers_hit": 30627,
+            "buffers_read": 0,
+            "planning_ms": 0.058,
+            "execution_ms": 146.714,
+            "worst_estimate": {
+              "node": "Seq Scan",
+              "estimated": 3078,
+              "actual": 14
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 1476981,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "index on (display_name)",
+          "note": "Built, paid for, and not used: the index is on display_name, the query filters on lower(display_name).",
+          "median_ms": 142.7972999999838,
+          "min_ms": 137.50729999992473,
+          "max_ms": 147.42320000004838,
+          "timed_out": false,
+          "rows": 42,
+          "hash": "cf72c82e85473c59",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Gather",
+              "Seq Scan on users"
+            ],
+            "buffers_hit": 30627,
+            "buffers_read": 0,
+            "planning_ms": 0.066,
+            "execution_ms": 141.145,
+            "worst_estimate": {
+              "node": "Seq Scan",
+              "estimated": 3077,
+              "actual": 14
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 1476981,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_users_name": 42033152
+          },
+          "problems": []
+        },
+        {
+          "name": "index on (lower(display_name))",
+          "note": "",
+          "median_ms": 0.21019999985583127,
+          "min_ms": 0.14939999982743757,
+          "max_ms": 0.3022999999302556,
+          "timed_out": false,
+          "rows": 42,
+          "hash": "cf72c82e85473c59",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Index Scan using exp_users_name_lower"
+            ],
+            "buffers_hit": 45,
+            "buffers_read": 0,
+            "planning_ms": 0.035,
+            "execution_ms": 0.031,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 4,
+              "actual": 42
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_users_name_lower": 41525248
+          },
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "06_not_in_null_trap",
+      "title": "Users who have never posted",
+      "question": "Three ways to write an anti-join. 16,835 posts have no owner (the account was deleted),\nso the sub-select contains NULLs. `x NOT IN (..., NULL)` is never true, so the obvious\nNOT IN query returns zero users instead of 1.16 million, and at the default work_mem\nit does not even finish.\n",
+      "params": {},
+      "variants": [
+        {
+          "name": "NOT EXISTS",
+          "note": "",
+          "median_ms": 488.63799999980984,
+          "min_ms": 474.85450000021956,
+          "max_ms": 502.51529999968625,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "43271f1f7746f721",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Hash Right Anti Join",
+              "Seq Scan on posts",
+              "Hash",
+              "Seq Scan on users"
+            ],
+            "buffers_hit": 117071,
+            "buffers_read": 10520,
+            "planning_ms": 0.198,
+            "execution_ms": 570.175,
+            "worst_estimate": {
+              "node": "Hash Join",
+              "estimated": 595223,
+              "actual": 387645
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 13778
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "LEFT JOIN ... IS NULL",
+          "note": "",
+          "median_ms": 693.9718000003268,
+          "min_ms": 576.7483999998149,
+          "max_ms": 716.3529999997991,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "43271f1f7746f721",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Hash Right Join",
+              "Seq Scan on posts",
+              "Hash",
+              "Seq Scan on users"
+            ],
+            "buffers_hit": 118157,
+            "buffers_read": 9464,
+            "planning_ms": 0.193,
+            "execution_ms": 680.738,
+            "worst_estimate": {
+              "node": "Gather",
+              "estimated": 1,
+              "actual": 1162936
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 928275,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 14691
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "NOT IN, default work_mem (4MB)",
+          "note": "The id list does not fit in work_mem, so Postgres re-scans it for every user: about 1.5M x 0.9M comparisons. Cancelled at the time limit.",
+          "median_ms": 20000.0,
+          "min_ms": 20000.0,
+          "max_ms": 20000.0,
+          "timed_out": true,
+          "rows": 0,
+          "hash": "e3b0c44298fc1c14",
+          "expect": "differs",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Seq Scan on users",
+              "Materialize",
+              "Seq Scan on posts"
+            ],
+            "buffers_hit": 0,
+            "buffers_read": 0,
+            "planning_ms": null,
+            "execution_ms": null,
+            "worst_estimate": null,
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "NOT IN, work_mem 256MB",
+          "note": "Now it finishes, with the wrong answer: 0. One NULL in the list makes NOT IN unknown for every row.",
+          "median_ms": 654.9756000003981,
+          "min_ms": 640.4916999999841,
+          "max_ms": 687.5565999998798,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "d0bca111f8628137",
+          "expect": "differs",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Seq Scan on users",
+              "Seq Scan on posts"
+            ],
+            "buffers_hit": 296807,
+            "buffers_read": 24340,
+            "planning_ms": 0.14,
+            "execution_ms": 674.09,
+            "worst_estimate": {
+              "node": "Seq Scan",
+              "estimated": 307691,
+              "actual": 0
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 1477023,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "NOT IN with NULLs filtered, work_mem 256MB",
+          "note": "",
+          "median_ms": 712.3834000003626,
+          "min_ms": 662.615399999595,
+          "max_ms": 804.8699000000852,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "43271f1f7746f721",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Seq Scan on users",
+              "Seq Scan on posts"
+            ],
+            "buffers_hit": 300048,
+            "buffers_read": 21099,
+            "planning_ms": 0.1,
+            "execution_ms": 814.294,
+            "worst_estimate": {
+              "node": "Gather",
+              "estimated": 2,
+              "actual": 3
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 364593,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "07_top_answer_per_question",
+      "title": "The best answer to each question asked last month",
+      "question": "Greatest-one-per-group: for each question asked in March 2024, its highest-scored\nanswer. Three ways to write it, tried without and with an index on\n(parent_id, score DESC, id). Every variant has the same index for finding the\nquestions of the month, so only the per-question lookup differs.\n",
+      "params": {
+        "since": "2024-03-01"
+      },
+      "variants": [
+        {
+          "name": "window function, no index",
+          "note": "",
+          "median_ms": 135.84280000031868,
+          "min_ms": 130.71410000065953,
+          "max_ms": 169.07909999918047,
+          "timed_out": false,
+          "rows": 369,
+          "hash": "0e42bfb19c8ac451",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Subquery Scan",
+              "WindowAgg",
+              "Gather Merge",
+              "Sort",
+              "Hash Join",
+              "Seq Scan on posts",
+              "Hash",
+              "Index Scan using exp_questions_date"
+            ],
+            "buffers_hit": 91612,
+            "buffers_read": 6203,
+            "planning_ms": 0.231,
+            "execution_ms": 145.808,
+            "worst_estimate": {
+              "node": "Subquery Scan",
+              "estimated": 5,
+              "actual": 369
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 38 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "DISTINCT ON, no index",
+          "note": "",
+          "median_ms": 135.0561999997808,
+          "min_ms": 131.79820000004838,
+          "max_ms": 141.34869999998045,
+          "timed_out": false,
+          "rows": 369,
+          "hash": "0e42bfb19c8ac451",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Unique",
+              "Gather Merge",
+              "Sort",
+              "Hash Join",
+              "Seq Scan on posts",
+              "Hash",
+              "Index Scan using exp_questions_date"
+            ],
+            "buffers_hit": 92668,
+            "buffers_read": 5147,
+            "planning_ms": 0.163,
+            "execution_ms": 176.432,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 415,
+              "actual": 144
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 38 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "LATERAL, no index",
+          "note": "One full scan of posts per question. Cancelled at the time limit.",
+          "median_ms": 20000.0,
+          "min_ms": 20000.0,
+          "max_ms": 20000.0,
+          "timed_out": true,
+          "rows": 0,
+          "hash": "e3b0c44298fc1c14",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Nested Loop",
+              "Index Scan using posts_pkey",
+              "Limit",
+              "Sort",
+              "Seq Scan on posts"
+            ],
+            "buffers_hit": 0,
+            "buffers_read": 0,
+            "planning_ms": null,
+            "execution_ms": null,
+            "worst_estimate": null,
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "window function + index",
+          "note": "",
+          "median_ms": 2.843100000063714,
+          "min_ms": 2.8316999996604864,
+          "max_ms": 2.8747999995175633,
+          "timed_out": false,
+          "rows": 369,
+          "hash": "0e42bfb19c8ac451",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Subquery Scan",
+              "WindowAgg",
+              "Sort",
+              "Nested Loop",
+              "Index Scan using exp_questions_date",
+              "Index Only Scan using exp_answers_best"
+            ],
+            "buffers_hit": 4412,
+            "buffers_read": 0,
+            "planning_ms": 0.24,
+            "execution_ms": 2.848,
+            "worst_estimate": {
+              "node": "Subquery Scan",
+              "estimated": 5,
+              "actual": 369
+            },
+            "heap_fetches": 1375,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 38 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_answers_best": 29818880
+          },
+          "problems": []
+        },
+        {
+          "name": "LATERAL + index",
+          "note": "",
+          "median_ms": 2.607499999612628,
+          "min_ms": 2.469099999871105,
+          "max_ms": 3.1086000008144765,
+          "timed_out": false,
+          "rows": 369,
+          "hash": "0e42bfb19c8ac451",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Nested Loop",
+              "Index Scan using exp_questions_date",
+              "Limit",
+              "Index Only Scan using exp_answers_best"
+            ],
+            "buffers_hit": 4412,
+            "buffers_read": 0,
+            "planning_ms": 0.137,
+            "execution_ms": 2.697,
+            "worst_estimate": {
+              "node": "Index Only Scan",
+              "estimated": 3,
+              "actual": 0
+            },
+            "heap_fetches": 1375,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 36 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_answers_best": 29818880
+          },
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "08_title_search",
+      "title": "Search question titles",
+      "question": "\"nvidia ... driver\" somewhere in a title. A leading wildcard defeats a B-tree index;\na trigram index serves the same ILIKE query unchanged; full-text search is a different,\nword-based question and returns a different set of rows.\n",
+      "params": {
+        "pattern": "%nvidia%driver%",
+        "tsquery": "nvidia & driver"
+      },
+      "variants": [
+        {
+          "name": "ILIKE, no index",
+          "note": "",
+          "median_ms": 237.22579999957816,
+          "min_ms": 227.23989999940386,
+          "max_ms": 260.5503000004319,
+          "timed_out": false,
+          "rows": 2678,
+          "hash": "96765c8aced6efa7",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Gather Merge",
+              "Sort",
+              "Seq Scan on posts"
+            ],
+            "buffers_hit": 96912,
+            "buffers_read": 0,
+            "planning_ms": 0.143,
+            "execution_ms": 235.132,
+            "worst_estimate": {
+              "node": "Gather Merge",
+              "estimated": 36,
+              "actual": 2678
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 942432,
+            "sort": [
+              "quicksort (Memory 143 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "ILIKE + B-tree on (title)",
+          "note": "Not used: a pattern that starts with % has no prefix to search the B-tree with.",
+          "median_ms": 224.9452999994901,
+          "min_ms": 191.79600000006758,
+          "max_ms": 249.57919999997102,
+          "timed_out": false,
+          "rows": 2678,
+          "hash": "96765c8aced6efa7",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Gather Merge",
+              "Sort",
+              "Seq Scan on posts"
+            ],
+            "buffers_hit": 96912,
+            "buffers_read": 0,
+            "planning_ms": 0.145,
+            "execution_ms": 225.925,
+            "worst_estimate": {
+              "node": "Gather Merge",
+              "estimated": 36,
+              "actual": 2678
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 942432,
+            "sort": [
+              "quicksort (Memory 102 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_posts_title": 36069376
+          },
+          "problems": []
+        },
+        {
+          "name": "ILIKE + trigram GIN on (title)",
+          "note": "",
+          "median_ms": 6.623599999329599,
+          "min_ms": 6.201600000167673,
+          "max_ms": 8.322700000462646,
+          "timed_out": false,
+          "rows": 2678,
+          "hash": "96765c8aced6efa7",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Bitmap Heap Scan on posts",
+              "Bitmap Index Scan using exp_posts_title_trgm"
+            ],
+            "buffers_hit": 2889,
+            "buffers_read": 0,
+            "planning_ms": 0.093,
+            "execution_ms": 5.172,
+            "worst_estimate": {
+              "node": "Bitmap Index Scan",
+              "estimated": 42,
+              "actual": 2816
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 320 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_posts_title_trgm": 63668224
+          },
+          "problems": []
+        },
+        {
+          "name": "full-text search + GIN on to_tsvector(title)",
+          "note": "Matches the words in any order and any form (driver, drivers), and treats nvidia-driver-535 as separate words, so the row set differs on purpose.",
+          "median_ms": 3.887199999553559,
+          "min_ms": 3.6182999992888654,
+          "max_ms": 4.352500000095461,
+          "timed_out": false,
+          "rows": 2784,
+          "hash": "7afbb8a96ff4deb7",
+          "expect": "any",
+          "plan": {
+            "nodes": [
+              "Sort",
+              "Bitmap Heap Scan on posts",
+              "Bitmap Index Scan using exp_posts_title_fts"
+            ],
+            "buffers_hit": 2763,
+            "buffers_read": 0,
+            "planning_ms": 0.077,
+            "execution_ms": 2.61,
+            "worst_estimate": {
+              "node": "Sort",
+              "estimated": 24,
+              "actual": 2784
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [
+              "quicksort (Memory 329 kB)"
+            ],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_posts_title_fts": 17391616
+          },
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "09_unindexed_foreign_keys",
+      "title": "Delete five posts",
+      "question": "Postgres indexes the referenced side of a foreign key (it must be a primary key or\nunique) but not the referencing side. Deleting a post makes it check every table that\npoints at posts: comments, votes, post_links (twice) and posts itself (parent_id,\naccepted_answer_id). Without an index on those columns each check is a full scan, once\nper deleted row. The five posts chosen have nothing pointing at them, so the delete is\nlegal; it runs inside a transaction that is rolled back.\n",
+      "params": {},
+      "variants": [
+        {
+          "name": "referencing columns not indexed",
+          "note": "The plan for the DELETE itself is trivial; the time is in the foreign-key triggers, which the buffer count does not include.",
+          "median_ms": 4606.768599999668,
+          "min_ms": 4466.961300000548,
+          "max_ms": 4625.648000000183,
+          "timed_out": false,
+          "rows": 5,
+          "hash": "85b222cfdc3283a6",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "ModifyTable on posts",
+              "Nested Loop",
+              "Aggregate",
+              "Seq Scan on exp_victims",
+              "Index Scan using posts_pkey"
+            ],
+            "buffers_hit": 36,
+            "buffers_read": 0,
+            "planning_ms": 0.103,
+            "execution_ms": 4435.145,
+            "worst_estimate": {
+              "node": "ModifyTable",
+              "estimated": 2550,
+              "actual": 5
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "referencing columns indexed",
+          "note": "",
+          "median_ms": 3.7471000005098176,
+          "min_ms": 3.061600000364706,
+          "max_ms": 3.882299999531824,
+          "timed_out": false,
+          "rows": 5,
+          "hash": "85b222cfdc3283a6",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "ModifyTable on posts",
+              "Nested Loop",
+              "Aggregate",
+              "Seq Scan on exp_victims",
+              "Index Scan using posts_pkey"
+            ],
+            "buffers_hit": 36,
+            "buffers_read": 0,
+            "planning_ms": 0.069,
+            "execution_ms": 3.335,
+            "worst_estimate": {
+              "node": "ModifyTable",
+              "estimated": 2550,
+              "actual": 5
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_fk_comments_post": 21774336,
+            "exp_fk_votes_post": 56893440,
+            "exp_fk_links_post": 4251648,
+            "exp_fk_links_related": 2752512,
+            "exp_fk_posts_parent": 9814016,
+            "exp_fk_posts_accepted": 3088384
+          },
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "10_extended_statistics",
+      "title": "Posts per holder of one gold badge",
+      "question": "The planner multiplies the selectivity of each filter as if columns were independent.\nA badge name fixes its class (\"Famous Question\" is always gold), so\n`name = 'Famous Question' AND class = 1` is estimated as 2% x 2.4% of badges when the\ntruth is 2%. Extended statistics on (name, class) tell the planner about the\ndependency. Does the better estimate change the plan, and the time?\n",
+      "params": {
+        "name": "Famous Question",
+        "class": 1
+      },
+      "variants": [
+        {
+          "name": "default statistics",
+          "note": "",
+          "median_ms": 273.27300000069954,
+          "min_ms": 236.6230000006908,
+          "max_ms": 306.00760000015725,
+          "timed_out": false,
+          "rows": 28053,
+          "hash": "b5f7a0435f0e1d8d",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather Merge",
+              "Sort",
+              "Aggregate",
+              "Nested Loop",
+              "Seq Scan on badges",
+              "Index Only Scan using exp_posts_owner"
+            ],
+            "buffers_hit": 184005,
+            "buffers_read": 0,
+            "planning_ms": 0.23,
+            "execution_ms": 290.71,
+            "worst_estimate": {
+              "node": "Nested Loop",
+              "estimated": 11203,
+              "actual": 733291
+            },
+            "heap_fetches": 606135,
+            "rows_removed_by_filter": 1964034,
+            "sort": [
+              "quicksort (Memory 683 kB)"
+            ],
+            "workers": 2,
+            "temp_blocks": 0,
+            "estimate": {
+              "node": "Seq Scan on badges",
+              "estimated": 399,
+              "actual": 13470
+            }
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "extended statistics on (name, class)",
+          "note": "",
+          "median_ms": 250.8127000000968,
+          "min_ms": 240.15289999988454,
+          "max_ms": 273.6140000006344,
+          "timed_out": false,
+          "rows": 28053,
+          "hash": "b5f7a0435f0e1d8d",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Nested Loop",
+              "Seq Scan on badges",
+              "Index Only Scan using exp_posts_owner"
+            ],
+            "buffers_hit": 183989,
+            "buffers_read": 0,
+            "planning_ms": 0.266,
+            "execution_ms": 331.075,
+            "worst_estimate": {
+              "node": "Aggregate",
+              "estimated": 37345,
+              "actual": 10926
+            },
+            "heap_fetches": 606135,
+            "rows_removed_by_filter": 1964034,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0,
+            "estimate": {
+              "node": "Seq Scan on badges",
+              "estimated": 17428,
+              "actual": 13470
+            }
+          },
+          "object_bytes": {},
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "11_index_not_worth_using",
+      "title": "The date of the latest vote of one type",
+      "question": "An index is not always the faster path. Vote type 2 (up-vote) is 73% of the table;\ntype 7 (reopen) is 198 rows. The same index on (vote_type_id) is offered for both.\nFor the common value the planner ignores it; forcing it shows the planner was right.\nThe last two variants ask about the rare value, so they return a different row and\ntheir times should be compared with each other, not with the first variant.\n",
+      "params": {
+        "common": 2,
+        "rare": 7
+      },
+      "variants": [
+        {
+          "name": "common value, no index",
+          "note": "",
+          "median_ms": 190.1562000002741,
+          "min_ms": 187.76209999941784,
+          "max_ms": 231.65459999927407,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "ee2bab4671e76fee",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Seq Scan on votes"
+            ],
+            "buffers_hit": 31536,
+            "buffers_read": 0,
+            "planning_ms": 0.111,
+            "execution_ms": 257.583,
+            "worst_estimate": {
+              "node": "Gather",
+              "estimated": 2,
+              "actual": 3
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 1347267,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "common value, index on (vote_type_id) available",
+          "note": "The index exists and the planner still reads the whole table.",
+          "median_ms": 196.3820000000851,
+          "min_ms": 177.35429999993357,
+          "max_ms": 246.6285999998945,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "ee2bab4671e76fee",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Seq Scan on votes"
+            ],
+            "buffers_hit": 31536,
+            "buffers_read": 0,
+            "planning_ms": 0.16,
+            "execution_ms": 234.777,
+            "worst_estimate": {
+              "node": "Gather",
+              "estimated": 2,
+              "actual": 3
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 1347267,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {
+            "exp_votes_type": 34226176
+          },
+          "problems": []
+        },
+        {
+          "name": "common value, index forced (enable_seqscan = off)",
+          "note": "",
+          "median_ms": 229.5905999999377,
+          "min_ms": 215.0405000002138,
+          "max_ms": 249.44719999984954,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "ee2bab4671e76fee",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Bitmap Heap Scan on votes",
+              "Bitmap Index Scan using exp_votes_type"
+            ],
+            "buffers_hit": 34526,
+            "buffers_read": 0,
+            "planning_ms": 0.129,
+            "execution_ms": 272.829,
+            "worst_estimate": {
+              "node": "Gather",
+              "estimated": 2,
+              "actual": 3
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "rare value, no index",
+          "note": "",
+          "median_ms": 140.19120000011753,
+          "min_ms": 135.636599999998,
+          "max_ms": 149.15920000021288,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "5ef8a4230e61f38e",
+          "expect": "any",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Gather",
+              "Aggregate",
+              "Seq Scan on votes"
+            ],
+            "buffers_hit": 31536,
+            "buffers_read": 0,
+            "planning_ms": 0.08,
+            "execution_ms": 133.98,
+            "worst_estimate": {
+              "node": "Seq Scan",
+              "estimated": 137,
+              "actual": 66
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 4934988,
+            "sort": [],
+            "workers": 2,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "rare value, same index",
+          "note": "",
+          "median_ms": 0.17180000031657983,
+          "min_ms": 0.1685999995970633,
+          "max_ms": 0.23190000047179637,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "5ef8a4230e61f38e",
+          "expect": "any",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "Index Scan using exp_votes_type"
+            ],
+            "buffers_hit": 96,
+            "buffers_read": 0,
+            "planning_ms": 0.106,
+            "execution_ms": 0.102,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 329,
+              "actual": 198
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 0
+          },
+          "object_bytes": {},
+          "problems": []
+        }
+      ]
+    },
+    {
+      "id": "12_write_cost_of_indexes",
+      "title": "Insert 200,000 votes",
+      "question": "Every index in the other experiments makes a read faster. This is the bill. The same\n200,000 rows are inserted into a 1,000,000-row copy of votes carrying 0, 1, 3 and 6\nindexes. The copy is rebuilt for every variant and each insert is rolled back.\n",
+      "params": {},
+      "variants": [
+        {
+          "name": "no indexes",
+          "note": "",
+          "median_ms": 340.04189999996015,
+          "min_ms": 313.2410999996864,
+          "max_ms": 345.0616000000082,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "153b32ca40094bdc",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "ModifyTable on exp_votes",
+              "Subquery Scan",
+              "Limit",
+              "Index Scan using votes_pkey",
+              "CTE Scan"
+            ],
+            "buffers_hit": 384141,
+            "buffers_read": 0,
+            "planning_ms": 0.114,
+            "execution_ms": 371.089,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 4935185,
+              "actual": 200000
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 341
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "primary key",
+          "note": "",
+          "median_ms": 706.4875999994911,
+          "min_ms": 677.1690999994462,
+          "max_ms": 724.7342000000572,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "153b32ca40094bdc",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "ModifyTable on exp_votes",
+              "Subquery Scan",
+              "Limit",
+              "Index Scan using votes_pkey",
+              "CTE Scan"
+            ],
+            "buffers_hit": 1186159,
+            "buffers_read": 0,
+            "planning_ms": 0.121,
+            "execution_ms": 799.911,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 4935185,
+              "actual": 200000
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 341
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "primary key + 2 indexes",
+          "note": "",
+          "median_ms": 1578.7745000006908,
+          "min_ms": 1490.3180999999677,
+          "max_ms": 1625.6872999992993,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "153b32ca40094bdc",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "ModifyTable on exp_votes",
+              "Subquery Scan",
+              "Limit",
+              "Index Scan using votes_pkey",
+              "CTE Scan"
+            ],
+            "buffers_hit": 2387207,
+            "buffers_read": 0,
+            "planning_ms": 0.127,
+            "execution_ms": 1491.852,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 4935185,
+              "actual": 200000
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 341
+          },
+          "object_bytes": {},
+          "problems": []
+        },
+        {
+          "name": "primary key + 5 indexes",
+          "note": "",
+          "median_ms": 2708.5165999997116,
+          "min_ms": 2550.3685000003316,
+          "max_ms": 2768.327999999201,
+          "timed_out": false,
+          "rows": 1,
+          "hash": "153b32ca40094bdc",
+          "expect": "same",
+          "plan": {
+            "nodes": [
+              "Aggregate",
+              "ModifyTable on exp_votes",
+              "Subquery Scan",
+              "Limit",
+              "Index Scan using votes_pkey",
+              "CTE Scan"
+            ],
+            "buffers_hit": 3795740,
+            "buffers_read": 1,
+            "planning_ms": 0.102,
+            "execution_ms": 2602.958,
+            "worst_estimate": {
+              "node": "Index Scan",
+              "estimated": 4935185,
+              "actual": 200000
+            },
+            "heap_fetches": 0,
+            "rows_removed_by_filter": 0,
+            "sort": [],
+            "workers": 0,
+            "temp_blocks": 341
+          },
+          "object_bytes": {},
+          "problems": []
+        }
+      ]
+    }
+  ]
+}

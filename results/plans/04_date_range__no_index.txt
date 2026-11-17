@@ -1,0 +1,22 @@
+Finalize GroupAggregate  (cost=63747.52..65021.35 rows=4632 width=12) (actual time=130.018..138.096 rows=31 loops=1)
+  Group Key: ((creation_date)::date)
+  Buffers: shared hit=31650
+  ->  Gather Merge  (cost=63747.52..64917.13 rows=9264 width=12) (actual time=130.003..138.083 rows=93 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=31650
+        ->  Partial GroupAggregate  (cost=62747.50..62847.81 rows=4632 width=12) (actual time=114.277..114.606 rows=31 loops=3)
+              Group Key: ((creation_date)::date)
+              Buffers: shared hit=31650
+              ->  Sort  (cost=62747.50..62761.64 rows=5655 width=4) (actual time=114.261..114.387 rows=4158 loops=3)
+                    Sort Key: ((creation_date)::date)
+                    Sort Method: quicksort  Memory: 193kB
+                    Buffers: shared hit=31650
+                    Worker 0:  Sort Method: quicksort  Memory: 97kB
+                    Worker 1:  Sort Method: quicksort  Memory: 97kB
+                    ->  Parallel Seq Scan on votes  (cost=0.00..62395.04 rows=5655 width=4) (actual time=0.101..113.797 rows=4158 loops=3)
+                          Filter: ((creation_date >= '2024-03-01 00:00:00'::timestamp without time zone) AND (vote_type_id = 2))
+                          Rows Removed by Filter: 1640904
+                          Buffers: shared hit=31536
+Planning Time: 0.068 ms
+Execution Time: 138.141 ms

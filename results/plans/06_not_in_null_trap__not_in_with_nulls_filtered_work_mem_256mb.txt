@@ -1,0 +1,19 @@
+Finalize Aggregate  (cost=148696.76..148696.77 rows=1 width=8) (actual time=744.550..784.792 rows=1 loops=1)
+  Buffers: shared hit=300156 read=20991
+  ->  Gather  (cost=148696.54..148696.75 rows=2 width=8) (actual time=742.981..784.786 rows=3 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=300156 read=20991
+        ->  Partial Aggregate  (cost=147696.54..147696.55 rows=1 width=8) (actual time=724.603..724.604 rows=1 loops=3)
+              Buffers: shared hit=300156 read=20991
+              ->  Parallel Seq Scan on users  (cost=108608.05..146927.32 rows=307691 width=0) (actual time=573.825..708.726 rows=387645 loops=3)
+                    Filter: (NOT (ANY (id = (hashed SubPlan 1).col1)))
+                    Rows Removed by Filter: 104696
+                    Buffers: shared hit=300156 read=20991
+                    SubPlan 1
+                      ->  Seq Scan on posts  (cost=0.00..106291.11 rows=926776 width=4) (actual time=0.386..406.168 rows=928276 loops=3)
+                            Filter: (owner_user_id IS NOT NULL)
+                            Rows Removed by Filter: 16835
+                            Buffers: shared hit=269529 read=20991
+Planning Time: 0.177 ms
+Execution Time: 786.026 ms

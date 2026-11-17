@@ -1,0 +1,28 @@
+Finalize HashAggregate  (cost=60117.33..60490.78 rows=37345 width=12) (actual time=352.739..357.657 rows=28053 loops=1)
+  Group Key: b.user_id
+  Batches: 1  Memory Usage: 3345kB
+  Buffers: shared hit=183988
+  ->  Gather  (cost=51901.43..59743.88 rows=74690 width=12) (actual time=339.770..344.515 rows=32799 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=183988
+        ->  Partial HashAggregate  (cost=50901.43..51274.88 rows=37345 width=12) (actual time=320.683..322.838 rows=10933 loops=3)
+              Group Key: b.user_id
+              Batches: 1  Memory Usage: 2321kB
+              Buffers: shared hit=183988
+              Worker 0:  Batches: 1  Memory Usage: 2321kB
+              Worker 1:  Batches: 1  Memory Usage: 2321kB
+              ->  Nested Loop  (cost=0.42..48140.66 rows=552153 width=4) (actual time=55.388..220.389 rows=733291 loops=3)
+                    Buffers: shared hit=183988
+                    ->  Parallel Seq Scan on badges b  (cost=0.00..29039.77 rows=17428 width=4) (actual time=55.285..70.958 rows=13470 loops=3)
+                          Filter: ((name = 'Famous Question'::text) AND (class = 1))
+                          Rows Removed by Filter: 654678
+                          Buffers: shared hit=16512
+                    ->  Index Only Scan using exp_posts_owner on posts p  (cost=0.42..0.91 rows=19 width=4) (actual time=0.003..0.007 rows=54 loops=40409)
+                          Index Cond: (owner_user_id = b.user_id)
+                          Heap Fetches: 15
+                          Buffers: shared hit=167476
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.184 ms
+Execution Time: 359.310 ms

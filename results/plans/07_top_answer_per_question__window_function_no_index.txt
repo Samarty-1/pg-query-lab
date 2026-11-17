@@ -1,0 +1,31 @@
+Subquery Scan on ranked  (cost=102977.47..103125.70 rows=5 width=12) (actual time=132.206..147.353 rows=369 loops=1)
+  Filter: (ranked.rn = 1)
+  Buffers: shared hit=91708 read=6107
+  ->  WindowAgg  (cost=102977.47..103113.26 rows=995 width=20) (actual time=132.204..147.301 rows=369 loops=1)
+        Run Condition: (row_number() OVER (?) <= 1)
+        Buffers: shared hit=91708 read=6107
+        ->  Gather Merge  (cost=102977.47..103093.36 rows=995 width=12) (actual time=132.192..147.009 rows=433 loops=1)
+              Workers Planned: 2
+              Workers Launched: 2
+              Buffers: shared hit=91708 read=6107
+              ->  Sort  (cost=101977.45..101978.49 rows=415 width=12) (actual time=116.413..116.421 rows=144 loops=3)
+                    Sort Key: q.id, a.score DESC, a.id
+                    Sort Method: quicksort  Memory: 38kB
+                    Buffers: shared hit=91708 read=6107
+                    Worker 0:  Sort Method: quicksort  Memory: 25kB
+                    Worker 1:  Sort Method: quicksort  Memory: 25kB
+                    ->  Hash Join  (cost=147.73..101959.40 rows=415 width=12) (actual time=77.477..116.348 rows=144 loops=3)
+                          Hash Cond: (a.parent_id = q.id)
+                          Buffers: shared hit=91686 read=6107
+                          ->  Parallel Seq Scan on posts a  (cost=0.00..100777.96 rows=393796 width=12) (actual time=0.275..57.705 rows=315037 loops=3)
+                                Buffers: shared hit=90733 read=6107
+                          ->  Hash  (cost=135.29..135.29 rows=995 width=4) (actual time=0.925..0.925 rows=1375 loops=3)
+                                Buckets: 2048 (originally 1024)  Batches: 1 (originally 1)  Memory Usage: 65kB
+                                Buffers: shared hit=857
+                                ->  Index Scan using exp_questions_date on posts q  (cost=0.42..135.29 rows=995 width=4) (actual time=0.029..0.791 rows=1375 loops=3)
+                                      Index Cond: (creation_date >= '2024-03-01 00:00:00'::timestamp without time zone)
+                                      Buffers: shared hit=857
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.185 ms
+Execution Time: 147.410 ms

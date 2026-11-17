@@ -1,0 +1,4 @@
+psycopg[binary]>=3.2
+lxml>=5
+py7zr>=0.21
+pytest>=8

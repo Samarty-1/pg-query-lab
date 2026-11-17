@@ -1,0 +1,71 @@
+title = "Up-votes per day over the last month"
+question = """
+A dashboard query over the biggest table (4.9M votes): up-votes per day since
+1 March 2024. Five ways to index a date range, with what each index costs on disk.
+"""
+ordered = true
+query = """
+SELECT creation_date::date AS day, count(*) AS up_votes
+FROM votes
+WHERE vote_type_id = 2 AND creation_date >= {{since}}::timestamp
+GROUP BY 1
+ORDER BY 1
+"""
+
+[params.full]
+since = "2024-03-01"
+[params.fixture]
+since = "2024-03-01"
+
+[[variant]]
+name = "no index"
+plan_has = ["Seq Scan on votes"]
+
+[[variant]]
+name = "BRIN on (creation_date)"
+note = "A BRIN index stores one min/max per range of pages. Votes.xml is not in id or date order (physical correlation 0.61), so recent votes sit in 24% of the pages, spread across every range: the index rules nothing out, and the scan it produces is not parallel."
+plan_has = ["exp_votes_date_brin"]
+setup = "CREATE INDEX exp_votes_date_brin ON votes USING brin (creation_date)"
+teardown = "DROP INDEX exp_votes_date_brin"
+measure_size = ["exp_votes_date_brin"]
+
+[[variant]]
+name = "BRIN on (creation_date), on a copy of the table stored in date order"
+note = "Same rows, same kind of index, 48 kB. The only change is the physical order of the rows."
+setup = """
+CREATE TABLE exp_votes_sorted AS SELECT * FROM votes ORDER BY creation_date, id;
+CREATE INDEX exp_votes_sorted_brin ON exp_votes_sorted USING brin (creation_date);
+VACUUM (ANALYZE) exp_votes_sorted
+"""
+teardown = "DROP TABLE exp_votes_sorted"
+measure_size = ["exp_votes_sorted_brin"]
+query = """
+SELECT creation_date::date AS day, count(*) AS up_votes
+FROM exp_votes_sorted
+WHERE vote_type_id = 2 AND creation_date >= {{since}}::timestamp
+GROUP BY 1
+ORDER BY 1
+"""
+plan_has = ["exp_votes_sorted_brin"]
+
+[[variant]]
+name = "B-tree on (creation_date)"
+setup = "CREATE INDEX exp_votes_date ON votes (creation_date)"
+teardown = "DROP INDEX exp_votes_date"
+measure_size = ["exp_votes_date"]
+plan_has = ["exp_votes_date"]
+
+[[variant]]
+name = "B-tree on (creation_date, vote_type_id)"
+note = "Both columns the query needs are in the index, so the table itself is never read (index-only scan)."
+setup = "CREATE INDEX exp_votes_date_type ON votes (creation_date, vote_type_id)"
+teardown = "DROP INDEX exp_votes_date_type"
+measure_size = ["exp_votes_date_type"]
+plan_has = ["Index Only Scan using exp_votes_date_type"]
+
+[[variant]]
+name = "partial B-tree on (creation_date) WHERE vote_type_id = 2"
+setup = "CREATE INDEX exp_votes_up_date ON votes (creation_date) WHERE vote_type_id = 2"
+teardown = "DROP INDEX exp_votes_up_date"
+measure_size = ["exp_votes_up_date"]
+plan_has = ["exp_votes_up_date"]

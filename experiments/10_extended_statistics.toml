@@ -1,0 +1,35 @@
+title = "Posts per holder of one gold badge"
+question = """
+The planner multiplies the selectivity of each filter as if columns were independent.
+A badge name fixes its class ("Famous Question" is always gold), so
+`name = 'Famous Question' AND class = 1` is estimated as 2% x 2.4% of badges when the
+truth is 2%. Extended statistics on (name, class) tell the planner about the
+dependency. Does the better estimate change the plan, and the time?
+"""
+ordered = false
+setup = "CREATE INDEX exp_posts_owner ON posts (owner_user_id)"
+teardown = "DROP INDEX exp_posts_owner"
+query = """
+SELECT b.user_id, count(*) AS posts
+FROM badges b
+JOIN posts p ON p.owner_user_id = b.user_id
+WHERE b.name = {{name}} AND b.class = {{class}}
+GROUP BY b.user_id
+"""
+
+[params.full]
+name = "Famous Question"
+class = 1
+[params.fixture]
+name = "bash"
+class = 3
+
+[[variant]]
+name = "default statistics"
+estimate_on = "Seq Scan on badges"
+
+[[variant]]
+name = "extended statistics on (name, class)"
+setup = "CREATE STATISTICS exp_badges_name_class (dependencies, mcv) ON name, class FROM badges; ANALYZE badges"
+teardown = "DROP STATISTICS exp_badges_name_class; ANALYZE badges"
+estimate_on = "Seq Scan on badges"

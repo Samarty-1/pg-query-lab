@@ -1,0 +1,15 @@
+Sort  (cost=131.89..131.95 rows=24 width=57) (actual time=2.363..2.443 rows=2784 loops=1)
+  Sort Key: id
+  Sort Method: quicksort  Memory: 329kB
+  Buffers: shared hit=2763
+  ->  Bitmap Heap Scan on posts  (cost=30.17..131.34 rows=24 width=57) (actual time=0.808..2.038 rows=2784 loops=1)
+        Recheck Cond: (to_tsvector('english'::regconfig, title) @@ '''nvidia'' & ''driver'''::tsquery)
+        Heap Blocks: exact=2747
+        Buffers: shared hit=2763
+        ->  Bitmap Index Scan on exp_posts_title_fts  (cost=0.00..30.17 rows=24 width=0) (actual time=0.582..0.582 rows=2784 loops=1)
+              Index Cond: (to_tsvector('english'::regconfig, title) @@ '''nvidia'' & ''driver'''::tsquery)
+              Buffers: shared hit=16
+Planning:
+  Buffers: shared hit=1
+Planning Time: 0.049 ms
+Execution Time: 2.521 ms

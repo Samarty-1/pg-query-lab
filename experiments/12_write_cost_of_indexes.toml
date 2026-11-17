@@ -1,0 +1,60 @@
+title = "Insert 200,000 votes"
+question = """
+Every index in the other experiments makes a read faster. This is the bill. The same
+200,000 rows are inserted into a 1,000,000-row copy of votes carrying 0, 1, 3 and 6
+indexes. The copy is rebuilt for every variant and each insert is rolled back.
+"""
+ordered = true
+rollback = true
+max_runs = 3
+teardown = "DROP TABLE IF EXISTS exp_votes"
+query = """
+WITH ins AS (
+    INSERT INTO exp_votes (id, post_id, vote_type_id, user_id, creation_date, bounty_amount)
+    SELECT id + 1000000000, post_id, vote_type_id, user_id, creation_date, bounty_amount
+    FROM (SELECT * FROM votes ORDER BY id DESC LIMIT 200000) newest
+    RETURNING 1
+)
+SELECT count(*) FROM ins
+"""
+
+[params.full]
+[params.fixture]
+
+[[variant]]
+name = "no indexes"
+setup = """
+DROP TABLE IF EXISTS exp_votes;
+CREATE TABLE exp_votes AS SELECT * FROM votes ORDER BY id LIMIT 1000000
+"""
+
+[[variant]]
+name = "primary key"
+setup = """
+DROP TABLE IF EXISTS exp_votes;
+CREATE TABLE exp_votes AS SELECT * FROM votes ORDER BY id LIMIT 1000000;
+ALTER TABLE exp_votes ADD PRIMARY KEY (id)
+"""
+
+[[variant]]
+name = "primary key + 2 indexes"
+setup = """
+DROP TABLE IF EXISTS exp_votes;
+CREATE TABLE exp_votes AS SELECT * FROM votes ORDER BY id LIMIT 1000000;
+ALTER TABLE exp_votes ADD PRIMARY KEY (id);
+CREATE INDEX ON exp_votes (post_id);
+CREATE INDEX ON exp_votes (creation_date, vote_type_id)
+"""
+
+[[variant]]
+name = "primary key + 5 indexes"
+setup = """
+DROP TABLE IF EXISTS exp_votes;
+CREATE TABLE exp_votes AS SELECT * FROM votes ORDER BY id LIMIT 1000000;
+ALTER TABLE exp_votes ADD PRIMARY KEY (id);
+CREATE INDEX ON exp_votes (post_id);
+CREATE INDEX ON exp_votes (creation_date, vote_type_id);
+CREATE INDEX ON exp_votes (vote_type_id);
+CREATE INDEX ON exp_votes (user_id);
+CREATE INDEX ON exp_votes (post_id, vote_type_id)
+"""

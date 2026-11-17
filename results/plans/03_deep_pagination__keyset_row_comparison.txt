@@ -1,0 +1,7 @@
+Limit  (cost=0.42..41.09 rows=50 width=65) (actual time=0.008..0.021 rows=50 loops=1)
+  Buffers: shared hit=18
+  ->  Index Scan using exp_questions_recent on posts  (cost=0.42..190731.57 rows=234495 width=65) (actual time=0.008..0.018 rows=50 loops=1)
+        Index Cond: (ROW(creation_date, id) < ROW('2016-09-30 18:39:00.94'::timestamp without time zone, 831682))
+        Buffers: shared hit=18
+Planning Time: 0.041 ms
+Execution Time: 0.028 ms

@@ -1,0 +1,23 @@
+Subquery Scan on ranked  (cost=4200.02..4234.84 rows=5 width=12) (actual time=2.442..2.808 rows=369 loops=1)
+  Filter: (ranked.rn = 1)
+  Buffers: shared hit=4412
+  ->  WindowAgg  (cost=4200.02..4222.41 rows=995 width=20) (actual time=2.442..2.766 rows=369 loops=1)
+        Run Condition: (row_number() OVER (?) <= 1)
+        Buffers: shared hit=4412
+        ->  Sort  (cost=4200.02..4202.51 rows=995 width=12) (actual time=2.440..2.459 rows=433 loops=1)
+              Sort Key: q.id, a.score DESC, a.id
+              Sort Method: quicksort  Memory: 38kB
+              Buffers: shared hit=4412
+              ->  Nested Loop  (cost=0.85..4150.48 rows=995 width=12) (actual time=0.014..2.378 rows=433 loops=1)
+                    Buffers: shared hit=4412
+                    ->  Index Scan using exp_questions_date on posts q  (cost=0.42..135.29 rows=995 width=4) (actual time=0.007..0.322 rows=1375 loops=1)
+                          Index Cond: (creation_date >= '2024-03-01 00:00:00'::timestamp without time zone)
+                          Buffers: shared hit=285
+                    ->  Index Only Scan using exp_answers_best on posts a  (cost=0.42..4.01 rows=3 width=12) (actual time=0.001..0.001 rows=0 loops=1375)
+                          Index Cond: (parent_id = q.id)
+                          Heap Fetches: 1
+                          Buffers: shared hit=4127
+Planning:
+  Buffers: shared hit=17
+Planning Time: 0.213 ms
+Execution Time: 2.840 ms

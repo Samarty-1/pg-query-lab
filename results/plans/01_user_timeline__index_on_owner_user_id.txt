@@ -1,0 +1,11 @@
+Limit  (cost=7019.12..7019.17 rows=20 width=71) (actual time=1.985..1.987 rows=20 loops=1)
+  Buffers: shared hit=4016
+  ->  Sort  (cost=7019.12..7028.97 rows=3938 width=71) (actual time=1.985..1.986 rows=20 loops=1)
+        Sort Key: creation_date DESC, id DESC
+        Sort Method: top-N heapsort  Memory: 27kB
+        Buffers: shared hit=4016
+        ->  Index Scan using exp_posts_owner on posts  (cost=0.42..6914.33 rows=3938 width=71) (actual time=0.006..1.317 rows=4428 loops=1)
+              Index Cond: (owner_user_id = 15811)
+              Buffers: shared hit=4016
+Planning Time: 0.039 ms
+Execution Time: 1.994 ms

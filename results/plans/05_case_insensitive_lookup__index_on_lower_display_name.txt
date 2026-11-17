@@ -1,0 +1,5 @@
+Index Scan using exp_users_name_lower on users  (cost=0.43..20.49 rows=4 width=20) (actual time=0.006..0.025 rows=42 loops=1)
+  Index Cond: (lower(display_name) = 'oli'::text)
+  Buffers: shared hit=45
+Planning Time: 0.037 ms
+Execution Time: 0.035 ms

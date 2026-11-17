@@ -1,0 +1,6 @@
+Limit  (cost=99163.91..99188.70 rows=50 width=65) (actual time=74.785..74.806 rows=50 loops=1)
+  Buffers: shared hit=50681
+  ->  Index Scan using exp_questions_recent on posts  (cost=0.42..206060.65 rows=415597 width=65) (actual time=0.010..69.752 rows=200050 loops=1)
+        Buffers: shared hit=50681
+Planning Time: 0.069 ms
+Execution Time: 74.821 ms

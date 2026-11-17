@@ -1,0 +1,17 @@
+Finalize Aggregate  (cost=94715.45..94715.46 rows=1 width=8) (actual time=258.776..268.160 rows=1 loops=1)
+  Buffers: shared hit=34526
+  ->  Gather  (cost=94715.23..94715.44 rows=2 width=8) (actual time=258.545..268.156 rows=3 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=34526
+        ->  Partial Aggregate  (cost=93715.23..93715.24 rows=1 width=8) (actual time=243.214..243.215 rows=1 loops=3)
+              Buffers: shared hit=34526
+              ->  Parallel Bitmap Heap Scan on votes  (cost=39827.98..89990.02 rows=1490083 width=8) (actual time=63.191..163.444 rows=1195973 loops=3)
+                    Recheck Cond: (vote_type_id = 2)
+                    Heap Blocks: exact=8342
+                    Buffers: shared hit=34526
+                    ->  Bitmap Index Scan on exp_votes_type  (cost=0.00..38933.93 rows=3576200 width=0) (actual time=74.240..74.241 rows=3587919 loops=1)
+                          Index Cond: (vote_type_id = 2)
+                          Buffers: shared hit=3023
+Planning Time: 0.099 ms
+Execution Time: 268.182 ms

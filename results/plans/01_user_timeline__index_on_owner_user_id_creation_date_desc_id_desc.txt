@@ -1,0 +1,7 @@
+Limit  (cost=0.42..54.96 rows=20 width=71) (actual time=0.008..0.015 rows=20 loops=1)
+  Buffers: shared hit=22
+  ->  Index Scan using exp_posts_owner_recent on posts  (cost=0.42..10738.90 rows=3938 width=71) (actual time=0.007..0.013 rows=20 loops=1)
+        Index Cond: (owner_user_id = 15811)
+        Buffers: shared hit=22
+Planning Time: 0.038 ms
+Execution Time: 0.021 ms

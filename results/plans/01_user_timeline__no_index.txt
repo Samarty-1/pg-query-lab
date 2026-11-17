@@ -1,0 +1,18 @@
+Limit  (cost=102806.14..102808.48 rows=20 width=71) (actual time=127.766..139.971 rows=20 loops=1)
+  Buffers: shared hit=84038 read=12888
+  ->  Gather Merge  (cost=102806.14..103189.07 rows=3282 width=71) (actual time=127.765..139.968 rows=20 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=84038 read=12888
+        ->  Sort  (cost=101806.12..101810.22 rows=1641 width=71) (actual time=114.020..114.021 rows=17 loops=3)
+              Sort Key: creation_date DESC, id DESC
+              Sort Method: top-N heapsort  Memory: 27kB
+              Buffers: shared hit=84038 read=12888
+              Worker 0:  Sort Method: top-N heapsort  Memory: 27kB
+              Worker 1:  Sort Method: top-N heapsort  Memory: 27kB
+              ->  Parallel Seq Scan on posts  (cost=0.00..101762.45 rows=1641 width=71) (actual time=0.199..113.645 rows=1476 loops=3)
+                    Filter: (owner_user_id = 15811)
+                    Rows Removed by Filter: 313561
+                    Buffers: shared hit=83952 read=12888
+Planning Time: 0.061 ms
+Execution Time: 139.991 ms

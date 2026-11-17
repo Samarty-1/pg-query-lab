@@ -1,0 +1,17 @@
+Sort  (cost=3288.40..3290.89 rows=995 width=12) (actual time=2.895..2.913 rows=369 loops=1)
+  Sort Key: q.id
+  Sort Method: quicksort  Memory: 36kB
+  Buffers: shared hit=4412
+  ->  Nested Loop  (cost=0.85..3238.86 rows=995 width=12) (actual time=0.018..2.827 rows=369 loops=1)
+        Buffers: shared hit=4412
+        ->  Index Scan using exp_questions_date on posts q  (cost=0.42..135.29 rows=995 width=4) (actual time=0.009..0.362 rows=1375 loops=1)
+              Index Cond: (creation_date >= '2024-03-01 00:00:00'::timestamp without time zone)
+              Buffers: shared hit=285
+        ->  Limit  (cost=0.42..3.11 rows=1 width=8) (actual time=0.002..0.002 rows=0 loops=1375)
+              Buffers: shared hit=4127
+              ->  Index Only Scan using exp_answers_best on posts a  (cost=0.42..8.48 rows=3 width=8) (actual time=0.001..0.001 rows=0 loops=1375)
+                    Index Cond: (parent_id = q.id)
+                    Heap Fetches: 1
+                    Buffers: shared hit=4127
+Planning Time: 0.124 ms
+Execution Time: 2.941 ms

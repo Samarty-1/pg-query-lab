@@ -1,0 +1,48 @@
+title = "Delete five posts"
+question = """
+Postgres indexes the referenced side of a foreign key (it must be a primary key or
+unique) but not the referencing side. Deleting a post makes it check every table that
+points at posts: comments, votes, post_links (twice) and posts itself (parent_id,
+accepted_answer_id). Without an index on those columns each check is a full scan, once
+per deleted row. The five posts chosen have nothing pointing at them, so the delete is
+legal; it runs inside a transaction that is rolled back.
+"""
+ordered = false
+rollback = true
+max_runs = 3
+setup = """
+CREATE TABLE exp_victims AS
+SELECT p.id FROM posts p
+WHERE p.post_type_id = 2
+  AND NOT EXISTS (SELECT 1 FROM comments c WHERE c.post_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM votes v WHERE v.post_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM post_links l WHERE l.post_id = p.id OR l.related_post_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM posts q WHERE q.accepted_answer_id = p.id)
+ORDER BY p.id DESC
+LIMIT 5
+"""
+teardown = "DROP TABLE exp_victims"
+query = "DELETE FROM posts WHERE id IN (SELECT id FROM exp_victims) RETURNING id"
+
+[params.full]
+[params.fixture]
+
+[[variant]]
+name = "referencing columns not indexed"
+note = "The plan for the DELETE itself is trivial; the time is in the foreign-key triggers, which the buffer count does not include."
+
+[[variant]]
+name = "referencing columns indexed"
+setup = """
+CREATE INDEX exp_fk_comments_post ON comments (post_id);
+CREATE INDEX exp_fk_votes_post ON votes (post_id);
+CREATE INDEX exp_fk_links_post ON post_links (post_id);
+CREATE INDEX exp_fk_links_related ON post_links (related_post_id);
+CREATE INDEX exp_fk_posts_parent ON posts (parent_id) WHERE parent_id IS NOT NULL;
+CREATE INDEX exp_fk_posts_accepted ON posts (accepted_answer_id) WHERE accepted_answer_id IS NOT NULL
+"""
+teardown = """
+DROP INDEX exp_fk_comments_post, exp_fk_votes_post, exp_fk_links_post, exp_fk_links_related,
+           exp_fk_posts_parent, exp_fk_posts_accepted
+"""
+measure_size = ["exp_fk_comments_post", "exp_fk_votes_post", "exp_fk_links_post", "exp_fk_links_related", "exp_fk_posts_parent", "exp_fk_posts_accepted"]

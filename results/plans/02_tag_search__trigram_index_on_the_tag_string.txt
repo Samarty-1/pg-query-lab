@@ -1,0 +1,18 @@
+Limit  (cost=37976.91..37977.03 rows=50 width=65) (actual time=11.917..11.921 rows=50 loops=1)
+  Buffers: shared hit=10663
+  ->  Sort  (cost=37976.91..38011.13 rows=13691 width=65) (actual time=11.916..11.918 rows=50 loops=1)
+        Sort Key: creation_date DESC, id DESC
+        Sort Method: top-N heapsort  Memory: 37kB
+        Buffers: shared hit=10663
+        ->  Bitmap Heap Scan on posts  (cost=140.09..37522.10 rows=13691 width=65) (actual time=3.831..9.947 rows=11211 loops=1)
+              Recheck Cond: (tags ~~ '%|bash|%'::text)
+              Rows Removed by Index Recheck: 46
+              Heap Blocks: exact=10579
+              Buffers: shared hit=10663
+              ->  Bitmap Index Scan on exp_posts_tags_trgm  (cost=0.00..136.67 rows=13691 width=0) (actual time=2.737..2.737 rows=11257 loops=1)
+                    Index Cond: (tags ~~ '%|bash|%'::text)
+                    Buffers: shared hit=84
+Planning:
+  Buffers: shared hit=1
+Planning Time: 0.070 ms
+Execution Time: 12.030 ms

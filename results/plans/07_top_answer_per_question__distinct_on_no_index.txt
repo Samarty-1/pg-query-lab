@@ -1,0 +1,27 @@
+Unique  (cost=102977.47..103095.85 rows=995 width=12) (actual time=164.237..181.022 rows=369 loops=1)
+  Buffers: shared hit=92732 read=5083
+  ->  Gather Merge  (cost=102977.47..103093.36 rows=995 width=12) (actual time=164.235..180.980 rows=433 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=92732 read=5083
+        ->  Sort  (cost=101977.45..101978.49 rows=415 width=12) (actual time=112.762..112.768 rows=144 loops=3)
+              Sort Key: q.id, a.score DESC, a.id
+              Sort Method: quicksort  Memory: 38kB
+              Buffers: shared hit=92732 read=5083
+              Worker 0:  Sort Method: quicksort  Memory: 25kB
+              Worker 1:  Sort Method: quicksort  Memory: 25kB
+              ->  Hash Join  (cost=147.73..101959.40 rows=415 width=12) (actual time=63.258..112.697 rows=144 loops=3)
+                    Hash Cond: (a.parent_id = q.id)
+                    Buffers: shared hit=92710 read=5083
+                    ->  Parallel Seq Scan on posts a  (cost=0.00..100777.96 rows=393796 width=12) (actual time=0.139..53.403 rows=315037 loops=3)
+                          Buffers: shared hit=91757 read=5083
+                    ->  Hash  (cost=135.29..135.29 rows=995 width=4) (actual time=1.095..1.095 rows=1375 loops=3)
+                          Buckets: 2048 (originally 1024)  Batches: 1 (originally 1)  Memory Usage: 65kB
+                          Buffers: shared hit=857
+                          ->  Index Scan using exp_questions_date on posts q  (cost=0.42..135.29 rows=995 width=4) (actual time=0.028..0.937 rows=1375 loops=3)
+                                Index Cond: (creation_date >= '2024-03-01 00:00:00'::timestamp without time zone)
+                                Buffers: shared hit=857
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.159 ms
+Execution Time: 181.061 ms

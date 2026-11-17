@@ -1,0 +1,15 @@
+Aggregate  (cost=14612.15..14612.16 rows=1 width=8) (actual time=401.028..401.029 rows=1 loops=1)
+  Buffers: shared hit=384141 dirtied=1275 written=1275, temp written=341
+  CTE ins
+    ->  Insert on exp_votes  (cost=0.43..10112.15 rows=200000 width=26) (actual time=0.027..344.083 rows=200000 loops=1)
+          Buffers: shared hit=384141 dirtied=1275 written=1275
+          ->  Subquery Scan on newest  (cost=0.43..10112.15 rows=200000 width=26) (actual time=0.017..167.948 rows=200000 loops=1)
+                Buffers: shared hit=181591
+                ->  Limit  (cost=0.43..9612.15 rows=200000 width=26) (actual time=0.016..136.703 rows=200000 loops=1)
+                      Buffers: shared hit=181591
+                      ->  Index Scan Backward using votes_pkey on votes  (cost=0.43..237178.55 rows=4935185 width=26) (actual time=0.015..125.066 rows=200000 loops=1)
+                            Buffers: shared hit=181591
+  ->  CTE Scan on ins  (cost=0.00..4000.00 rows=200000 width=0) (actual time=0.029..389.406 rows=200000 loops=1)
+        Buffers: shared hit=384141 dirtied=1275 written=1275, temp written=341
+Planning Time: 0.120 ms
+Execution Time: 406.878 ms

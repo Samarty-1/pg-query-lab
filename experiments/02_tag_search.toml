@@ -1,0 +1,96 @@
+title = "The 50 newest questions with a given tag"
+question = """
+Tags arrive in the dump as one string per question, `|bash|scripts|`. The loader also
+splits them into a `post_tags (post_id, tag_id)` table. Which shape answers "newest 50
+questions tagged bash" fastest, and does the junction table's primary key help?
+"""
+ordered = true
+
+[params.full]
+tag = "bash"
+pattern = "%|bash|%"
+[params.fixture]
+tag = "bash"
+pattern = "%|bash|%"
+
+[[variant]]
+name = "LIKE on the tag string"
+query = """
+SELECT id, title, creation_date
+FROM posts
+WHERE tags LIKE {{pattern}}
+ORDER BY creation_date DESC, id DESC
+LIMIT 50
+"""
+plan_has = ["Seq Scan on posts"]
+
+[[variant]]
+name = "junction table, primary key (post_id, tag_id) only"
+note = "The key starts with post_id, so it cannot be used to look up a tag: the whole junction table is read."
+query = """
+SELECT p.id, p.title, p.creation_date
+FROM tags t
+JOIN post_tags pt ON pt.tag_id = t.id
+JOIN posts p ON p.id = pt.post_id
+WHERE t.tag_name = {{tag}}
+ORDER BY p.creation_date DESC, p.id DESC
+LIMIT 50
+"""
+plan_lacks = ["exp_post_tags_tag"]
+
+[[variant]]
+name = "junction table + index on (tag_id, post_id)"
+setup = "CREATE INDEX exp_post_tags_tag ON post_tags (tag_id, post_id)"
+teardown = "DROP INDEX exp_post_tags_tag"
+measure_size = ["exp_post_tags_tag"]
+query = """
+SELECT p.id, p.title, p.creation_date
+FROM tags t
+JOIN post_tags pt ON pt.tag_id = t.id
+JOIN posts p ON p.id = pt.post_id
+WHERE t.tag_name = {{tag}}
+ORDER BY p.creation_date DESC, p.id DESC
+LIMIT 50
+"""
+plan_has = ["exp_post_tags_tag"]
+
+[[variant]]
+name = "trigram index on the tag string"
+note = "Keeps the original LIKE query unchanged; costs a much larger index."
+setup = "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE INDEX exp_posts_tags_trgm ON posts USING gin (tags gin_trgm_ops)"
+teardown = "DROP INDEX exp_posts_tags_trgm"
+measure_size = ["exp_posts_tags_trgm"]
+query = """
+SELECT id, title, creation_date
+FROM posts
+WHERE tags LIKE {{pattern}}
+ORDER BY creation_date DESC, id DESC
+LIMIT 50
+"""
+
+[[variant]]
+name = "junction table carrying creation_date, index on (tag_id, creation_date DESC, post_id DESC)"
+note = "Every earlier variant must fetch all 11,211 bash questions to find the newest 50. Copying the (immutable) creation date into the junction row lets the index hand back the newest 50 directly."
+setup = """
+CREATE TABLE exp_post_tags AS
+  SELECT pt.tag_id, p.creation_date, pt.post_id
+  FROM post_tags pt JOIN posts p ON p.id = pt.post_id;
+CREATE INDEX exp_post_tags_recent ON exp_post_tags (tag_id, creation_date DESC, post_id DESC);
+ANALYZE exp_post_tags
+"""
+teardown = "DROP TABLE exp_post_tags"
+measure_size = ["exp_post_tags"]
+query = """
+SELECT p.id, p.title, p.creation_date
+FROM tags t
+JOIN LATERAL (
+    SELECT post_id FROM exp_post_tags x
+    WHERE x.tag_id = t.id
+    ORDER BY x.creation_date DESC, x.post_id DESC
+    LIMIT 50
+) newest ON true
+JOIN posts p ON p.id = newest.post_id
+WHERE t.tag_name = {{tag}}
+ORDER BY p.creation_date DESC, p.id DESC
+"""
+plan_has = ["exp_post_tags_recent"]

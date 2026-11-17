@@ -1,0 +1,16 @@
+Sort  (cost=876.07..887.65 rows=4632 width=12) (actual time=3.115..3.117 rows=31 loops=1)
+  Sort Key: ((creation_date)::date)
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=18
+  ->  HashAggregate  (cost=536.14..594.04 rows=4632 width=12) (actual time=3.094..3.107 rows=31 loops=1)
+        Group Key: (creation_date)::date
+        Batches: 1  Memory Usage: 217kB
+        Buffers: shared hit=18
+        ->  Index Only Scan using exp_votes_date_type on votes  (cost=0.43..468.28 rows=13571 width=4) (actual time=0.007..1.523 rows=12474 loops=1)
+              Index Cond: ((creation_date >= '2024-03-01 00:00:00'::timestamp without time zone) AND (vote_type_id = 2))
+              Heap Fetches: 0
+              Buffers: shared hit=18
+Planning:
+  Buffers: shared hit=4
+Planning Time: 0.082 ms
+Execution Time: 3.188 ms

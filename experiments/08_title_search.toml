@@ -1,0 +1,50 @@
+title = "Search question titles"
+question = """
+"nvidia ... driver" somewhere in a title. A leading wildcard defeats a B-tree index;
+a trigram index serves the same ILIKE query unchanged; full-text search is a different,
+word-based question and returns a different set of rows.
+"""
+ordered = true
+
+[params.full]
+pattern = "%nvidia%driver%"
+tsquery = "nvidia & driver"
+[params.fixture]
+pattern = "%kernel%error%"
+tsquery = "kernel & error"
+
+[[variant]]
+name = "ILIKE, no index"
+query = "SELECT id, title FROM posts WHERE title ILIKE {{pattern}} ORDER BY id"
+plan_has = ["Seq Scan on posts"]
+
+[[variant]]
+name = "ILIKE + B-tree on (title)"
+note = "Not used: a pattern that starts with % has no prefix to search the B-tree with."
+setup = "CREATE INDEX exp_posts_title ON posts (title)"
+teardown = "DROP INDEX exp_posts_title"
+measure_size = ["exp_posts_title"]
+query = "SELECT id, title FROM posts WHERE title ILIKE {{pattern}} ORDER BY id"
+plan_lacks = ["exp_posts_title"]
+
+[[variant]]
+name = "ILIKE + trigram GIN on (title)"
+setup = "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE INDEX exp_posts_title_trgm ON posts USING gin (title gin_trgm_ops)"
+teardown = "DROP INDEX exp_posts_title_trgm"
+measure_size = ["exp_posts_title_trgm"]
+query = "SELECT id, title FROM posts WHERE title ILIKE {{pattern}} ORDER BY id"
+plan_has = ["exp_posts_title_trgm"]
+
+[[variant]]
+name = "full-text search + GIN on to_tsvector(title)"
+note = "Matches the words in any order and any form (driver, drivers), and treats nvidia-driver-535 as separate words, so the row set differs on purpose."
+setup = "CREATE INDEX exp_posts_title_fts ON posts USING gin (to_tsvector('english', title))"
+teardown = "DROP INDEX exp_posts_title_fts"
+measure_size = ["exp_posts_title_fts"]
+query = """
+SELECT id, title FROM posts
+WHERE to_tsvector('english', title) @@ to_tsquery('english', {{tsquery}})
+ORDER BY id
+"""
+expect = "any"
+plan_has = ["exp_posts_title_fts"]

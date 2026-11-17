@@ -1,0 +1,7 @@
+Aggregate  (cost=627.49..627.50 rows=1 width=8) (actual time=0.090..0.091 rows=1 loops=1)
+  Buffers: shared hit=96
+  ->  Index Scan using exp_votes_type on votes  (cost=0.43..626.67 rows=329 width=8) (actual time=0.006..0.064 rows=198 loops=1)
+        Index Cond: (vote_type_id = 7)
+        Buffers: shared hit=96
+Planning Time: 0.099 ms
+Execution Time: 0.101 ms

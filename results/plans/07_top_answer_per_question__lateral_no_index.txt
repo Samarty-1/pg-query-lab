@@ -1,0 +1,9 @@
+-- cancelled after 20 s; this is the plan without ANALYZE
+Nested Loop  (cost=108654.33..108236801.25 rows=995 width=12)
+  ->  Index Scan using posts_pkey on posts q  (cost=0.42..126155.83 rows=995 width=4)
+        Filter: ((creation_date >= '2024-03-01 00:00:00'::timestamp without time zone) AND (post_type_id = 1))
+  ->  Limit  (cost=108653.90..108653.90 rows=1 width=8)
+        ->  Sort  (cost=108653.90..108653.91 rows=3 width=8)
+              Sort Key: a.score DESC, a.id
+              ->  Seq Scan on posts a  (cost=0.00..108653.89 rows=3 width=8)
+                    Filter: (parent_id = q.id)

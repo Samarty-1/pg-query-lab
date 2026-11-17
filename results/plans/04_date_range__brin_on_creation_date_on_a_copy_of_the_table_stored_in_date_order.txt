@@ -1,0 +1,22 @@
+Sort  (cost=29849.59..29860.63 rows=4416 width=12) (actual time=3.527..3.528 rows=31 loops=1)
+  Sort Key: ((creation_date)::date)
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=194
+  ->  HashAggregate  (cost=29527.04..29582.24 rows=4416 width=12) (actual time=3.512..3.523 rows=31 loops=1)
+        Group Key: (creation_date)::date
+        Batches: 1  Memory Usage: 217kB
+        Buffers: shared hit=194
+        ->  Bitmap Heap Scan on exp_votes_sorted  (cost=14.82..29471.35 rows=11138 width=4) (actual time=0.504..2.420 rows=12474 loops=1)
+              Recheck Cond: (creation_date >= '2024-03-01 00:00:00'::timestamp without time zone)
+              Rows Removed by Index Recheck: 6135
+              Filter: (vote_type_id = 2)
+              Rows Removed by Filter: 3483
+              Heap Blocks: lossy=192
+              Buffers: shared hit=194
+              ->  Bitmap Index Scan on exp_votes_sorted_brin  (cost=0.00..12.03 rows=19981 width=0) (actual time=0.029..0.029 rows=1920 loops=1)
+                    Index Cond: (creation_date >= '2024-03-01 00:00:00'::timestamp without time zone)
+                    Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=1
+Planning Time: 0.055 ms
+Execution Time: 3.609 ms

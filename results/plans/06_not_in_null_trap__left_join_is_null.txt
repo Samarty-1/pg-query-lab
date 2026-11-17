@@ -1,0 +1,22 @@
+Aggregate  (cost=155170.85..155170.86 rows=1 width=8) (actual time=676.324..706.739 rows=1 loops=1)
+  Buffers: shared hit=118253 read=9368, temp read=7280 written=7432
+  ->  Gather  (cost=47877.07..155170.85 rows=1 width=0) (actual time=406.201..648.607 rows=1162936 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=118253 read=9368, temp read=7280 written=7432
+        ->  Parallel Hash Right Join  (cost=46877.07..154170.75 rows=1 width=0) (actual time=397.002..543.300 rows=387645 loops=3)
+              Hash Cond: (p.owner_user_id = u.id)
+              Filter: (p.id IS NULL)
+              Rows Removed by Filter: 309425
+              Buffers: shared hit=118253 read=9368, temp read=7280 written=7432
+              ->  Parallel Seq Scan on posts p  (cost=0.00..100777.96 rows=393796 width=8) (actual time=0.022..152.557 rows=315037 loops=3)
+                    Buffers: shared hit=87472 read=9368
+              ->  Parallel Hash  (cost=36780.81..36780.81 rows=615381 width=4) (actual time=127.628..127.629 rows=492341 loops=3)
+                    Buckets: 262144  Batches: 16  Memory Usage: 5728kB
+                    Buffers: shared hit=30627, temp written=4168
+                    ->  Parallel Seq Scan on users u  (cost=0.00..36780.81 rows=615381 width=4) (actual time=0.010..57.209 rows=492341 loops=3)
+                          Buffers: shared hit=30627
+Planning:
+  Buffers: shared hit=8
+Planning Time: 0.186 ms
+Execution Time: 706.767 ms

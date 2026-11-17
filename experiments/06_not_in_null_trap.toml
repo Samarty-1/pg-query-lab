@@ -1,0 +1,56 @@
+title = "Users who have never posted"
+question = """
+Three ways to write an anti-join. 16,835 posts have no owner (the account was deleted),
+so the sub-select contains NULLs. `x NOT IN (..., NULL)` is never true, so the obvious
+NOT IN query returns zero users instead of 1.16 million, and at the default work_mem
+it does not even finish.
+"""
+ordered = true
+
+[params.full]
+[params.fixture]
+
+[[variant]]
+name = "NOT EXISTS"
+query = """
+SELECT count(*) FROM users u
+WHERE NOT EXISTS (SELECT 1 FROM posts p WHERE p.owner_user_id = u.id)
+"""
+plan_has = ["Anti Join"]
+
+[[variant]]
+name = "LEFT JOIN ... IS NULL"
+query = """
+SELECT count(*) FROM users u
+LEFT JOIN posts p ON p.owner_user_id = u.id
+WHERE p.id IS NULL
+"""
+
+[[variant]]
+name = "NOT IN, default work_mem (4MB)"
+note = "The id list does not fit in work_mem, so Postgres re-scans it for every user: about 1.5M x 0.9M comparisons. Cancelled at the time limit."
+query = """
+SELECT count(*) FROM users
+WHERE id NOT IN (SELECT owner_user_id FROM posts)
+"""
+timeout_s = 20
+expect_timeout = true
+expect = "differs"
+
+[[variant]]
+name = "NOT IN, work_mem 256MB"
+note = "Now it finishes, with the wrong answer: 0. One NULL in the list makes NOT IN unknown for every row."
+query = """
+SELECT count(*) FROM users
+WHERE id NOT IN (SELECT owner_user_id FROM posts)
+"""
+settings = { work_mem = "256MB" }
+expect = "differs"
+
+[[variant]]
+name = "NOT IN with NULLs filtered, work_mem 256MB"
+query = """
+SELECT count(*) FROM users
+WHERE id NOT IN (SELECT owner_user_id FROM posts WHERE owner_user_id IS NOT NULL)
+"""
+settings = { work_mem = "256MB" }

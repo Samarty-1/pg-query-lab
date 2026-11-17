@@ -1,0 +1,39 @@
+title = "The 20 most recent posts by one user"
+question = """
+The profile page: the latest 20 posts by one user, newest first. The user picked is the
+most prolific author on the site (4,428 posts), which is the worst case for this page.
+"""
+ordered = true
+query = """
+SELECT id, post_type_id, title, creation_date, score
+FROM posts
+WHERE owner_user_id = {{user_id}}
+ORDER BY creation_date DESC, id DESC
+LIMIT 20
+"""
+
+[params.full]
+user_id = 15811
+[params.fixture]
+user_id = 7
+
+[[variant]]
+name = "no index"
+plan_has = ["Seq Scan on posts"]
+
+[[variant]]
+name = "index on (owner_user_id)"
+note = "Finds the rows for the user through the index, but still fetches and sorts all of them to keep 20."
+setup = "CREATE INDEX exp_posts_owner ON posts (owner_user_id)"
+teardown = "DROP INDEX exp_posts_owner"
+measure_size = ["exp_posts_owner"]
+plan_has = ["exp_posts_owner", "Sort"]
+
+[[variant]]
+name = "index on (owner_user_id, creation_date DESC, id DESC)"
+note = "The index is already in the order the page wants, so the scan stops after 20 entries and nothing is sorted."
+setup = "CREATE INDEX exp_posts_owner_recent ON posts (owner_user_id, creation_date DESC, id DESC)"
+teardown = "DROP INDEX exp_posts_owner_recent"
+measure_size = ["exp_posts_owner_recent"]
+plan_has = ["Index Scan using exp_posts_owner_recent"]
+plan_lacks = ["Sort"]

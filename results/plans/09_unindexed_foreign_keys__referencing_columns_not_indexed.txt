@@ -1,0 +1,24 @@
+Delete on posts  (cost=42.30..1696.54 rows=2550 width=12) (actual time=0.038..0.053 rows=5 loops=1)
+  Buffers: shared hit=36
+  ->  Nested Loop  (cost=42.30..1696.54 rows=2550 width=12) (actual time=0.028..0.037 rows=5 loops=1)
+        Buffers: shared hit=21
+        ->  HashAggregate  (cost=41.88..43.88 rows=200 width=10) (actual time=0.014..0.015 rows=5 loops=1)
+              Group Key: exp_victims.id
+              Batches: 1  Memory Usage: 40kB
+              Buffers: shared hit=1
+              ->  Seq Scan on exp_victims  (cost=0.00..35.50 rows=2550 width=10) (actual time=0.010..0.011 rows=5 loops=1)
+                    Buffers: shared hit=1
+        ->  Index Scan using posts_pkey on posts  (cost=0.42..8.30 rows=1 width=10) (actual time=0.004..0.004 rows=1 loops=5)
+              Index Cond: (id = exp_victims.id)
+              Buffers: shared hit=20
+Planning Time: 0.102 ms
+Trigger for constraint posts_parent_fk: time=951.132 calls=5
+Trigger for constraint comments_post_fk: time=927.577 calls=5
+Trigger for constraint post_links_post_fk: time=75.294 calls=5
+Trigger for constraint post_tags_post_fk: time=0.340 calls=5
+Trigger for constraint tags_excerpt_fk: time=1.400 calls=5
+Trigger for constraint tags_wiki_fk: time=1.487 calls=5
+Trigger for constraint votes_post_fk: time=1686.466 calls=5
+Trigger for constraint post_links_related_fk: time=76.813 calls=5
+Trigger for constraint posts_accepted_fk: time=967.519 calls=5
+Execution Time: 4688.148 ms

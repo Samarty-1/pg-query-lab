@@ -1,0 +1,90 @@
+title = "The best answer to each question asked last month"
+question = """
+Greatest-one-per-group: for each question asked in March 2024, its highest-scored
+answer. Three ways to write it, tried without and with an index on
+(parent_id, score DESC, id). Every variant has the same index for finding the
+questions of the month, so only the per-question lookup differs.
+"""
+ordered = true
+setup = "CREATE INDEX exp_questions_date ON posts (creation_date) WHERE post_type_id = 1"
+teardown = "DROP INDEX exp_questions_date"
+
+[params.full]
+since = "2024-03-01"
+[params.fixture]
+since = "2024-03-01"
+
+[[variant]]
+name = "window function, no index"
+query = """
+SELECT question_id, answer_id, score FROM (
+    SELECT q.id AS question_id, a.id AS answer_id, a.score,
+           row_number() OVER (PARTITION BY q.id ORDER BY a.score DESC, a.id) AS rn
+    FROM posts q JOIN posts a ON a.parent_id = q.id
+    WHERE q.post_type_id = 1 AND q.creation_date >= {{since}}::timestamp
+) ranked
+WHERE rn = 1
+ORDER BY question_id
+"""
+
+[[variant]]
+name = "DISTINCT ON, no index"
+query = """
+SELECT DISTINCT ON (q.id) q.id AS question_id, a.id AS answer_id, a.score
+FROM posts q JOIN posts a ON a.parent_id = q.id
+WHERE q.post_type_id = 1 AND q.creation_date >= {{since}}::timestamp
+ORDER BY q.id, a.score DESC, a.id
+"""
+
+[[variant]]
+name = "LATERAL, no index"
+note = "One full scan of posts per question. Cancelled at the time limit."
+query = """
+SELECT q.id AS question_id, best.id AS answer_id, best.score
+FROM posts q
+CROSS JOIN LATERAL (
+    SELECT a.id, a.score FROM posts a
+    WHERE a.parent_id = q.id
+    ORDER BY a.score DESC, a.id
+    LIMIT 1
+) best
+WHERE q.post_type_id = 1 AND q.creation_date >= {{since}}::timestamp
+ORDER BY q.id
+"""
+timeout_s = 20
+expect_timeout = true
+
+[[variant]]
+name = "window function + index"
+setup = "CREATE INDEX exp_answers_best ON posts (parent_id, score DESC, id)"
+teardown = "DROP INDEX exp_answers_best"
+measure_size = ["exp_answers_best"]
+query = """
+SELECT question_id, answer_id, score FROM (
+    SELECT q.id AS question_id, a.id AS answer_id, a.score,
+           row_number() OVER (PARTITION BY q.id ORDER BY a.score DESC, a.id) AS rn
+    FROM posts q JOIN posts a ON a.parent_id = q.id
+    WHERE q.post_type_id = 1 AND q.creation_date >= {{since}}::timestamp
+) ranked
+WHERE rn = 1
+ORDER BY question_id
+"""
+
+[[variant]]
+name = "LATERAL + index"
+setup = "CREATE INDEX exp_answers_best ON posts (parent_id, score DESC, id)"
+teardown = "DROP INDEX exp_answers_best"
+measure_size = ["exp_answers_best"]
+query = """
+SELECT q.id AS question_id, best.id AS answer_id, best.score
+FROM posts q
+CROSS JOIN LATERAL (
+    SELECT a.id, a.score FROM posts a
+    WHERE a.parent_id = q.id
+    ORDER BY a.score DESC, a.id
+    LIMIT 1
+) best
+WHERE q.post_type_id = 1 AND q.creation_date >= {{since}}::timestamp
+ORDER BY q.id
+"""
+plan_has = ["exp_answers_best"]

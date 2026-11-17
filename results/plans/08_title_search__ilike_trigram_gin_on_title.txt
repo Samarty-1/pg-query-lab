@@ -1,0 +1,16 @@
+Sort  (cost=283.25..283.35 rows=42 width=57) (actual time=4.847..4.922 rows=2678 loops=1)
+  Sort Key: id
+  Sort Method: quicksort  Memory: 320kB
+  Buffers: shared hit=2889
+  ->  Bitmap Heap Scan on posts  (cost=116.21..282.11 rows=42 width=57) (actual time=2.334..4.497 rows=2678 loops=1)
+        Recheck Cond: (title ~~* '%nvidia%driver%'::text)
+        Rows Removed by Index Recheck: 138
+        Heap Blocks: exact=2778
+        Buffers: shared hit=2889
+        ->  Bitmap Index Scan on exp_posts_title_trgm  (cost=0.00..116.20 rows=42 width=0) (actual time=2.098..2.098 rows=2816 loops=1)
+              Index Cond: (title ~~* '%nvidia%driver%'::text)
+              Buffers: shared hit=111
+Planning:
+  Buffers: shared hit=1
+Planning Time: 0.086 ms
+Execution Time: 5.059 ms

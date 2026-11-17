@@ -1,0 +1,43 @@
+title = "Page 4,001 of the question list"
+question = """
+Questions newest first, 50 per page. Both variants have the same index on
+(creation_date, id); the only difference is how the page is addressed. OFFSET has to
+walk past every earlier row; keyset pagination starts from the last row of the
+previous page.
+"""
+ordered = true
+setup = "CREATE INDEX exp_questions_recent ON posts (creation_date DESC, id DESC) WHERE post_type_id = 1"
+teardown = "DROP INDEX exp_questions_recent"
+derive = """
+SELECT creation_date AS after_date, id AS after_id
+FROM posts WHERE post_type_id = 1
+ORDER BY creation_date DESC, id DESC
+OFFSET {{offset}} - 1 LIMIT 1
+"""
+
+[params.full]
+offset = 200000
+[params.fixture]
+offset = 2000
+
+[[variant]]
+name = "OFFSET"
+query = """
+SELECT id, title, creation_date
+FROM posts
+WHERE post_type_id = 1
+ORDER BY creation_date DESC, id DESC
+OFFSET {{offset}} LIMIT 50
+"""
+
+[[variant]]
+name = "keyset (row comparison)"
+query = """
+SELECT id, title, creation_date
+FROM posts
+WHERE post_type_id = 1
+  AND (creation_date, id) < ({{after_date}}::timestamp, {{after_id}})
+ORDER BY creation_date DESC, id DESC
+LIMIT 50
+"""
+plan_has = ["Index Scan using exp_questions_recent"]
